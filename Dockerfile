@@ -1,7 +1,7 @@
 # ==========================================
 # Stage 1: Build Angular Frontend
 # ==========================================
-FROM oven/bun:1.1.42-alpine AS frontend-builder
+FROM oven/bun:1.3.1-alpine AS frontend-builder
 
 WORKDIR /app
 
@@ -24,7 +24,7 @@ RUN bun run build:prod
 # ==========================================
 # Stage 2: Setup Backend + Prisma
 # ==========================================
-FROM oven/bun:1.1.42-alpine AS backend-builder
+FROM oven/bun:1.3.1-alpine AS backend-builder
 
 WORKDIR /app
 
@@ -44,7 +44,7 @@ COPY server ./server
 # ==========================================
 # Stage 3: Runtime - Produção
 # ==========================================
-FROM oven/bun:1.1.42-alpine AS runtime
+FROM oven/bun:1.3.1-alpine AS runtime
 
 WORKDIR /app
 
