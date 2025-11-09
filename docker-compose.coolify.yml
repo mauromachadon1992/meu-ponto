@@ -4,6 +4,7 @@
 version: '3.8'
 
 services:
+  # Frontend Angular
   app:
     build:
       context: .
@@ -19,6 +20,12 @@ services:
     environment:
       - NODE_ENV=production
       - TZ=America/Sao_Paulo
+      - API_URL=${API_URL:-http://api:3000}
+    
+    # Depende do backend
+    depends_on:
+      api:
+        condition: service_healthy
     
     # Health check para Coolify monitorar
     healthcheck:
@@ -32,9 +39,12 @@ services:
     labels:
       - "coolify.managed=true"
       - "coolify.type=application"
-      - "coolify.name=meu-ponto"
+      - "coolify.name=meu-ponto-frontend"
     
-    # Recursos (ajustar conforme necessário)
+    networks:
+      - meu-ponto-network
+    
+    # Recursos
     deploy:
       resources:
         limits:
@@ -44,7 +54,98 @@ services:
           cpus: '0.25'
           memory: 256M
 
-# Rede padrão
+  # Backend API (Node.js/Bun)
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: meu-ponto-api
+    restart: unless-stopped
+    
+    ports:
+      - "${API_PORT:-3000}:3000"
+    
+    environment:
+      - NODE_ENV=production
+      - TZ=America/Sao_Paulo
+      - API_PORT=${API_PORT:-3000}
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-7d}
+    
+    depends_on:
+      postgres:
+        condition: service_healthy
+    
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    labels:
+      - "coolify.managed=true"
+      - "coolify.type=application"
+      - "coolify.name=meu-ponto-backend"
+    
+    networks:
+      - meu-ponto-network
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: meu-ponto-db
+    restart: unless-stopped
+    
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-meu_ponto}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-meu_ponto}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    
+    labels:
+      - "coolify.managed=true"
+      - "coolify.type=database"
+      - "coolify.name=meu-ponto-postgres"
+    
+    networks:
+      - meu-ponto-network
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+# Volumes persistentes
+volumes:
+  postgres_data:
+    driver: local
+
+# Rede interna
 networks:
-  default:
+  meu-ponto-network:
     driver: bridge

@@ -21,7 +21,15 @@
       "env": {
         "NODE_ENV": "production",
         "TZ": "America/Sao_Paulo",
-        "PORT": "80"
+        "PORT": "80",
+        "API_PORT": "3000",
+        "API_URL": "http://api:3000",
+        "DATABASE_URL": "postgresql://postgres:CHANGE_ME@postgres:5432/meu_ponto?schema=public",
+        "POSTGRES_USER": "postgres",
+        "POSTGRES_PASSWORD": "CHANGE_ME_IN_PRODUCTION",
+        "POSTGRES_DB": "meu_ponto",
+        "JWT_SECRET": "CHANGE_ME_TO_RANDOM_SECURE_STRING",
+        "JWT_EXPIRES_IN": "7d"
       }
     },
     "staging": {
@@ -42,7 +50,15 @@
       "env": {
         "NODE_ENV": "production",
         "TZ": "America/Sao_Paulo",
-        "PORT": "80"
+        "PORT": "80",
+        "API_PORT": "3000",
+        "API_URL": "http://api:3000",
+        "DATABASE_URL": "postgresql://postgres:STAGING_PASSWORD@postgres:5432/meu_ponto_staging?schema=public",
+        "POSTGRES_USER": "postgres",
+        "POSTGRES_PASSWORD": "STAGING_PASSWORD",
+        "POSTGRES_DB": "meu_ponto_staging",
+        "JWT_SECRET": "STAGING_JWT_SECRET",
+        "JWT_EXPIRES_IN": "7d"
       }
     },
     "development": {

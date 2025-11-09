@@ -26,16 +26,26 @@ RUN rm /etc/nginx/conf.d/default.conf
 COPY nginx.conf /etc/nginx/nginx.conf
 
 # Copiar os arquivos buildados do stage anterior
+# Angular 18+ já inclui arquivos do /public no build automaticamente
 COPY --from=builder /app/dist/meu-ponto/browser /usr/share/nginx/html
 
-# Copiar arquivos públicos (logos, manifest, etc)
-COPY --from=builder /app/public /usr/share/nginx/html
-
-# Criar diretório de logs
+# Criar diretório de logs e ajustar permissões
 RUN mkdir -p /var/log/nginx && \
     chown -R nginx:nginx /var/log/nginx && \
     chown -R nginx:nginx /usr/share/nginx/html && \
     chmod -R 755 /usr/share/nginx/html
+
+# Adicionar script para substituir variáveis de ambiente em runtime
+RUN echo '#!/bin/sh' > /docker-entrypoint.sh && \
+    echo 'echo "Replacing environment variables..."' >> /docker-entrypoint.sh && \
+    echo 'for file in /usr/share/nginx/html/*.js; do' >> /docker-entrypoint.sh && \
+    echo '  if [ -f "$file" ]; then' >> /docker-entrypoint.sh && \
+    echo '    sed -i "s|__API_URL__|${API_URL:-http://localhost:3000}|g" "$file"' >> /docker-entrypoint.sh && \
+    echo '  fi' >> /docker-entrypoint.sh && \
+    echo 'done' >> /docker-entrypoint.sh && \
+    echo 'echo "Starting Nginx..."' >> /docker-entrypoint.sh && \
+    echo 'exec nginx -g "daemon off;"' >> /docker-entrypoint.sh && \
+    chmod +x /docker-entrypoint.sh
 
 # Expor porta (Coolify irá mapear automaticamente)
 EXPOSE 80
@@ -44,5 +54,5 @@ EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD wget --quiet --tries=1 --spider http://localhost/health || exit 1
 
-# Comando para iniciar o Nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Usar entrypoint para substituir env vars e iniciar Nginx
+ENTRYPOINT ["/docker-entrypoint.sh"]
