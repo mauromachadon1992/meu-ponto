@@ -4,10 +4,11 @@ FROM oven/bun:1
 WORKDIR /app
 
 # Copiar arquivos de dependências
-COPY package.json bun.lockb ./
+COPY package.json ./
+COPY bun.lock* ./
 
-# Instalar dependências
-RUN bun install --frozen-lockfile
+# Instalar dependências (usar package-lock.json se bun.lock não existir)
+RUN bun install
 
 # Copiar código fonte
 COPY . .
