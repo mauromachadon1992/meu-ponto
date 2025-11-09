@@ -821,14 +821,17 @@ app
     return { error: 'Frontend index.html not found' };
   })
   
-  .listen(PORT);
+  .listen({
+    port: PORT,
+    hostname: isProduction ? '0.0.0.0' : 'localhost',
+  });
 
 console.log(`
 ╔═══════════════════════════════════════════════════════════════╗
 ║                                                               ║
 ║  🦊 Meu Ponto - Sistema de Ponto Eletrônico                  ║
 ║                                                               ║
-║  ✅ Servidor rodando em: http://${app.server?.hostname}:${app.server?.port.toString().padEnd(27)}║
+║  ✅ Servidor rodando em: http://${app.server?.hostname}:${app.server?.port || PORT}                ║
 ║  🌍 Ambiente: ${(isProduction ? 'PRODUÇÃO' : 'DESENVOLVIMENTO').padEnd(46)}║
 ║  📂 Frontend: ${fs.existsSync(publicPath) ? 'Disponível' : 'Não encontrado'.padEnd(46)}║
 ║  📊 Database: ${prisma ? 'Conectado' : 'Desconectado'.padEnd(46)}║

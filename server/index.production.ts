@@ -139,14 +139,17 @@ const app = new Elysia()
       )
   )
   
-  .listen(PORT);
+  .listen({
+    port: PORT,
+    hostname: '0.0.0.0', // Essencial para Docker/Coolify
+  });
 
 console.log(`
 ╔═══════════════════════════════════════════════════════════════╗
 ║                                                               ║
 ║  🦊 Meu Ponto - Sistema de Ponto Eletrônico                  ║
 ║                                                               ║
-║  ✅ Servidor rodando em: http://${app.server?.hostname}:${app.server?.port}                ║
+║  ✅ Servidor rodando em: http://${app.server?.hostname}:${app.server?.port || PORT}                ║
 ║  🌍 Ambiente: ${isProduction ? 'PRODUÇÃO' : 'DESENVOLVIMENTO'}                                 ║
 ║  📊 Database: ${prisma ? 'Conectado' : 'Desconectado'}                              ║
 ║  ⏰ Timezone: ${process.env.TZ || 'UTC'}                           ║
