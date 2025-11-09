@@ -36,24 +36,12 @@ RUN mkdir -p /var/log/nginx && \
     chown -R nginx:nginx /usr/share/nginx/html && \
     chmod -R 755 /usr/share/nginx/html
 
-# Adicionar script para substituir variáveis de ambiente em runtime
-RUN echo '#!/bin/sh' > /docker-entrypoint.sh && \
-    echo 'echo "Replacing environment variables..."' >> /docker-entrypoint.sh && \
-    echo 'for file in /usr/share/nginx/html/*.js; do' >> /docker-entrypoint.sh && \
-    echo '  if [ -f "$file" ]; then' >> /docker-entrypoint.sh && \
-    echo '    sed -i "s|__API_URL__|${API_URL:-http://localhost:3000}|g" "$file"' >> /docker-entrypoint.sh && \
-    echo '  fi' >> /docker-entrypoint.sh && \
-    echo 'done' >> /docker-entrypoint.sh && \
-    echo 'echo "Starting Nginx..."' >> /docker-entrypoint.sh && \
-    echo 'exec nginx -g "daemon off;"' >> /docker-entrypoint.sh && \
-    chmod +x /docker-entrypoint.sh
-
 # Expor porta (Coolify irá mapear automaticamente)
 EXPOSE 80
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD wget --quiet --tries=1 --spider http://localhost/health || exit 1
 
-# Usar entrypoint para substituir env vars e iniciar Nginx
-ENTRYPOINT ["/docker-entrypoint.sh"]
+# Comando para iniciar o Nginx
+CMD ["nginx", "-g", "daemon off;"]
