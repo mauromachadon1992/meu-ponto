@@ -5,15 +5,17 @@ FROM oven/bun:1.3.1-alpine AS frontend-builder
 
 WORKDIR /app
 
-# Copiar arquivos de dependências
+# Copiar apenas arquivos de dependências primeiro (melhor cache)
 COPY package.json bun.lock ./
+
+# Instalar dependências (camada cacheável)
+RUN bun install --frozen-lockfile
+
+# Copiar arquivos de configuração
 COPY tsconfig.json tsconfig.app.json angular.json ./
 COPY tailwind.config.js components.json ./
 
-# Instalar dependências
-RUN bun install --frozen-lockfile
-
-# Copiar código fonte
+# Copiar código fonte (após dependências para melhor cache)
 COPY src ./src
 COPY public ./public
 COPY libs ./libs
@@ -85,9 +87,14 @@ EXPOSE 3000
 ENV NODE_ENV=production
 ENV PORT=3000
 
-# Health check (aumentar start-period para 60s)
+# Health check otimizado para Coolify
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD bun run -e "fetch('http://localhost:3000/api/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"
+
+# Labels para Coolify (informativas)
+LABEL org.opencontainers.image.title="Meu Ponto"
+LABEL org.opencontainers.image.description="Sistema de Ponto Eletrônico - Angular + Elysia.js + Prisma"
+LABEL org.opencontainers.image.version="1.0.0"
 
 # Entrypoint
 ENTRYPOINT ["/app/entrypoint.sh"]

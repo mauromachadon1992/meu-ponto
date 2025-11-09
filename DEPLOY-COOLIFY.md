@@ -90,25 +90,41 @@ O Coolify criará automaticamente:
 
 ## 🔧 Build Local (Teste antes do Deploy)
 
+⚠️ **IMPORTANTE**: Use `docker-compose.local.yml` para testes locais, não `docker-compose.yml`!
+
 ```bash
-# 1. Build da imagem
+# 1. Criar arquivo .env
+cat > .env << EOF
+POSTGRES_PASSWORD=postgres
+POSTGRES_USER=postgres
+POSTGRES_DB=meu_ponto
+APP_PORT=3000
+EOF
+
+# 2. Build da imagem
 docker build -t meu-ponto:latest .
 
-# 2. Testar com docker-compose
-cp .env.example .env
-# Edite .env com suas configurações
+# 3. Testar com docker-compose (arquivo local)
+docker-compose -f docker-compose.local.yml up -d
 
-docker-compose up -d
+# 4. Ver logs
+docker-compose -f docker-compose.local.yml logs -f app
 
-# 3. Ver logs
-docker-compose logs -f app
+# 5. Acessar
+open http://localhost:3000
 
-# 4. Acessar
-http://localhost:3000
-
-# 5. Parar
-docker-compose down
+# 6. Parar
+docker-compose -f docker-compose.local.yml down
 ```
+
+### Diferenças: Local vs Coolify
+
+| Aspecto | Local (`docker-compose.local.yml`) | Coolify (`docker-compose.yml`) |
+|---------|-----------------------------------|--------------------------------|
+| Portas | ✅ Expostas (3000, 5432) | ❌ Não expor (Traefik gerencia) |
+| Container names | ✅ Fixos (`-local` suffix) | ❌ Gerenciados pelo Coolify |
+| Volume names | ✅ Fixos (`-local` suffix) | ❌ Gerenciados pelo Coolify |
+| Senha padrão | ✅ Pode usar `postgres` | ❌ Obrigatória (`:?`) |
 
 ## 📊 Monitoramento
 

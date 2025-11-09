@@ -1,20 +1,27 @@
 version: '3.9'
 
+# docker-compose.local.yml
+# Este arquivo é para uso LOCAL apenas (não usar no Coolify)
+# Para Coolify, use docker-compose.yml
+#
+# Uso:
+#   docker-compose -f docker-compose.local.yml up -d
+
 services:
   # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
+    container_name: meu-ponto-db-local
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}  # Obrigatória - falha se não definida
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-meu_ponto}
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    # Porta não exposta externamente (apenas na rede interna)
-    # ports:
-    #   - "${POSTGRES_PORT:-5432}:5432"
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"  # Exposta localmente
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 10s
@@ -28,13 +35,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: meu-ponto-app-local
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
     environment:
-      # Database (obrigatória)
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?}@postgres:5432/${POSTGRES_DB:-meu_ponto}?schema=public
+      # Database
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-meu_ponto}?schema=public
       
       # Application
       NODE_ENV: production
@@ -42,10 +50,8 @@ services:
       
       # Opcional: Configurações adicionais
       TZ: America/Sao_Paulo
-    # Porta removida - Coolify gerencia via proxy Traefik
-    # Para deploy local, descomente a linha abaixo:
-    # ports:
-    #   - "3000:3000"
+    ports:
+      - "${APP_PORT:-3000}:3000"  # Exposta localmente
     volumes:
       # Persistir dados de produção (fotos, etc)
       - app_data:/app/data
@@ -57,19 +63,14 @@ services:
       timeout: 10s
       start_period: 60s
       retries: 3
-    labels:
-      # Labels do Coolify (gerenciados automaticamente)
-      - "coolify.managed=true"
-      # Expor no Traefik (proxy do Coolify) - porta interna 3000
-      # Coolify adiciona automaticamente regras de roteamento baseado no domínio configurado
 
 volumes:
   postgres_data:
-    # Coolify gerencia nomes automaticamente - não forçar name específico
+    name: meu-ponto-postgres-data-local
   app_data:
-    # Coolify gerencia nomes automaticamente - não forçar name específico
+    name: meu-ponto-app-data-local
 
 networks:
   meu-ponto-network:
-    # Coolify gerencia nomes automaticamente - não forçar name específico
+    name: meu-ponto-network-local
     driver: bridge
