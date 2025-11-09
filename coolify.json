@@ -1,0 +1,89 @@
+{
+  "name": "meu-ponto",
+  "type": "docker-compose",
+  "dockerComposeFile": "docker-compose.coolify.yml",
+  "environments": {
+    "production": {
+      "branch": "main",
+      "dockerComposeFile": "docker-compose.coolify.yml",
+      "buildCommand": "docker-compose -f docker-compose.coolify.yml build",
+      "startCommand": "docker-compose -f docker-compose.coolify.yml up -d",
+      "port": 80,
+      "domain": "meuponto.example.com",
+      "ssl": true,
+      "healthCheck": {
+        "enabled": true,
+        "path": "/health",
+        "interval": 30,
+        "timeout": 10,
+        "retries": 3
+      },
+      "env": {
+        "NODE_ENV": "production",
+        "TZ": "America/Sao_Paulo",
+        "PORT": "80"
+      }
+    },
+    "staging": {
+      "branch": "staging",
+      "dockerComposeFile": "docker-compose.coolify.yml",
+      "buildCommand": "docker-compose -f docker-compose.coolify.yml build",
+      "startCommand": "docker-compose -f docker-compose.coolify.yml up -d",
+      "port": 80,
+      "domain": "staging.meuponto.example.com",
+      "ssl": true,
+      "healthCheck": {
+        "enabled": true,
+        "path": "/health",
+        "interval": 30,
+        "timeout": 10,
+        "retries": 3
+      },
+      "env": {
+        "NODE_ENV": "production",
+        "TZ": "America/Sao_Paulo",
+        "PORT": "80"
+      }
+    },
+    "development": {
+      "branch": "dev",
+      "dockerComposeFile": "docker-compose.coolify.dev.yml",
+      "buildCommand": "docker-compose -f docker-compose.coolify.dev.yml build",
+      "startCommand": "docker-compose -f docker-compose.coolify.dev.yml up -d",
+      "port": 4200,
+      "domain": "dev.meuponto.example.com",
+      "ssl": true,
+      "healthCheck": {
+        "enabled": true,
+        "path": "/",
+        "interval": 30,
+        "timeout": 10,
+        "retries": 3
+      },
+      "env": {
+        "NODE_ENV": "development",
+        "TZ": "America/Sao_Paulo",
+        "PORT": "4200"
+      }
+    }
+  },
+  "resources": {
+    "limits": {
+      "cpus": "0.5",
+      "memory": "512M"
+    },
+    "reservations": {
+      "cpus": "0.25",
+      "memory": "256M"
+    }
+  },
+  "webhook": {
+    "enabled": true,
+    "events": ["push", "pull_request"]
+  },
+  "notifications": {
+    "enabled": true,
+    "channels": ["discord", "email"],
+    "events": ["deploy_failed", "deploy_success", "container_stopped"]
+  }
+}

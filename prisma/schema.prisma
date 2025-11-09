@@ -1,0 +1,115 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  String            @id @default(uuid())
+  nome                String
+  email               String            @unique
+  pin                 String            @unique
+  avatar              String?
+  faceDescriptor      String?           // JSON string para armazenar dados biométricos
+  cargo               String?
+  departamento        String?
+  cargaHorariaDiaria  Float?            @default(8.0) // Horas esperadas por dia
+  salarioMensal       Float?            // Salário mensal em R$
+  chavePix            String?           // Chave PIX para pagamento (CPF, email, celular ou aleatória)
+  isAdmin             Boolean           @default(false) // Permissão de administrador
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  
+  registros       RegistroPonto[]
+  periodos        PeriodoFechamento[]
+
+  @@map("users")
+}
+
+model RegistroPonto {
+  id             String   @id @default(uuid())
+  userId         String
+  data           DateTime
+  horario        String?             // HH:mm - horário do registro
+  tipoHorario    TipoHorario?        // ENTRADA, SAIDA, SAIDA_ALMOCO, RETORNO_ALMOCO
+  entrada        String?             // Mantido para compatibilidade
+  saidaAlmoco    String?             // Mantido para compatibilidade
+  retornoAlmoco  String?             // Mantido para compatibilidade
+  saida          String?             // Mantido para compatibilidade
+  observacao     String?
+  tipo           TipoRegistro     @default(NORMAL)
+  status         StatusRegistro   @default(PENDENTE)
+  periodoId      String?
+  fotoUrl        String?          // URL ou path da foto
+  localizacao    String?          // JSON com {latitude, longitude, precisao}
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  periodo        PeriodoFechamento? @relation(fields: [periodoId], references: [id])
+
+  @@map("registros_ponto")
+  @@index([userId])
+  @@index([data])
+  @@index([periodoId])
+}
+
+model PeriodoFechamento {
+  id                     String           @id @default(uuid())
+  userId                 String
+  dataInicio             DateTime
+  dataFim                DateTime
+  totalHorasTrabalhadas  Float            @default(0)
+  totalHorasExtras       Float            @default(0)
+  totalHorasDevidas      Float            @default(0)
+  cargaHorariaMensal     Float            @default(176)
+  status                 StatusFechamento @default(ABERTO)
+  observacoes            String?
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  
+  user                   User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  registros              RegistroPonto[]
+
+  @@map("periodos_fechamento")
+  @@index([userId])
+  @@index([dataInicio])
+  @@index([dataFim])
+}
+
+enum TipoHorario {
+  ENTRADA
+  SAIDA
+  SAIDA_ALMOCO
+  RETORNO_ALMOCO
+}
+
+enum TipoRegistro {
+  NORMAL
+  FERIADO
+  FALTA
+  ATESTADO
+  FERIAS
+}
+
+enum StatusRegistro {
+  PENDENTE
+  COMPLETO
+  INCOMPLETO
+}
+
+enum StatusFechamento {
+  ABERTO
+  EM_ANALISE
+  APROVADO
+  FECHADO
+}

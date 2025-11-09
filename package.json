@@ -6,7 +6,19 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "server": "bun run server/index.ts",
+    "server:dev": "bun --watch server/index.ts",
+    "prisma:generate": "DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/meu_ponto?schema=public\" prisma generate",
+    "prisma:migrate": "DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/meu_ponto?schema=public\" prisma migrate dev",
+    "prisma:migrate:deploy": "DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/meu_ponto?schema=public\" prisma migrate deploy",
+    "prisma:seed": "DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/meu_ponto?schema=public\" bun run prisma/seed.ts",
+    "prisma:studio": "DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/meu_ponto?schema=public\" prisma studio",
+    "init:production": "bun run scripts/init-production.ts",
+    "dev": "concurrently \"bun run start\" \"bun run server:dev\""
+  },
+  "prisma": {
+    "seed": "bun run prisma/seed.ts"
   },
   "prettier": {
     "printWidth": 100,
@@ -22,13 +34,30 @@
   },
   "private": true,
   "dependencies": {
+    "@angular/cdk": "^20.2.12",
     "@angular/common": "^20.3.0",
     "@angular/compiler": "^20.3.0",
     "@angular/core": "^20.3.0",
     "@angular/forms": "^20.3.0",
     "@angular/platform-browser": "^20.3.0",
     "@angular/router": "^20.3.0",
+    "@elysiajs/cors": "^1.4.0",
+    "@ng-icons/core": "^31.4.0",
+    "@ng-icons/lucide": "^31.4.0",
+    "@prisma/client": "^6.19.0",
+    "@spartan-ng/brain": "^0.0.1-alpha.552",
+    "autoprefixer": "^10.4.21",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.1",
+    "dotenv": "^17.2.3",
+    "elysia": "^1.4.15",
+    "jspdf": "^3.0.3",
+    "jspdf-autotable": "^5.0.2",
+    "ngx-sonner": ">=3.0.0",
+    "postcss": "^8.5.6",
     "rxjs": "~7.8.0",
+    "tailwind-merge": "^3.3.1",
+    "tailwindcss": "3",
     "tslib": "^2.3.0",
     "zone.js": "~0.15.0"
   },
@@ -36,13 +65,16 @@
     "@angular/build": "^20.3.8",
     "@angular/cli": "^20.3.8",
     "@angular/compiler-cli": "^20.3.0",
+    "@spartan-ng/cli": "^0.0.1-alpha.552",
     "@types/jasmine": "~5.1.0",
+    "concurrently": "^9.2.1",
     "jasmine-core": "~5.9.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
+    "prisma": "^6.19.0",
     "typescript": "~5.9.2"
   }
 }

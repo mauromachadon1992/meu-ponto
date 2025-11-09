@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  # Desenvolvimento - usa volume mount para hot reload
+  meu-ponto-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: meu-ponto-dev
+    restart: unless-stopped
+    ports:
+      - "4200:4200"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    networks:
+      - meu-ponto-network
+    command: bun run start
+
+networks:
+  meu-ponto-network:
+    driver: bridge

@@ -1,0 +1,45 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fundo para PWA -->
+  <circle cx="256" cy="256" r="256" fill="#f8f4fc"/>
+  
+  <!-- Círculo externo -->
+  <circle cx="256" cy="256" r="210" stroke="#64008C" stroke-width="10" fill="none"/>
+  <circle cx="256" cy="256" r="175" stroke="#23C6AF" stroke-width="5" fill="none" opacity="0.4"/>
+  
+  <!-- Marcas de horas principais -->
+  <line x1="256" y1="55" x2="256" y2="85" stroke="#64008C" stroke-width="8" stroke-linecap="round"/>
+  <line x1="457" y1="256" x2="427" y2="256" stroke="#64008C" stroke-width="8" stroke-linecap="round"/>
+  <line x1="256" y1="457" x2="256" y2="427" stroke="#64008C" stroke-width="8" stroke-linecap="round"/>
+  <line x1="55" y1="256" x2="85" y2="256" stroke="#64008C" stroke-width="8" stroke-linecap="round"/>
+  
+  <!-- Marcas secundárias -->
+  <g opacity="0.6">
+    <line x1="367" y1="100" x2="345" y2="122" stroke="#333333" stroke-width="6" stroke-linecap="round"/>
+    <line x1="412" y1="145" x2="390" y2="167" stroke="#333333" stroke-width="6" stroke-linecap="round"/>
+    <line x1="412" y1="367" x2="390" y2="345" stroke="#333333" stroke-width="6" stroke-linecap="round"/>
+    <line x1="367" y1="412" x2="345" y2="390" stroke="#333333" stroke-width="6" stroke-linecap="round"/>
+    <line x1="145" y1="412" x2="167" y2="390" stroke="#333333" stroke-width="6" stroke-linecap="round"/>
+    <line x1="100" y1="367" x2="122" y2="345" stroke="#333333" stroke-width="6" stroke-linecap="round"/>
+    <line x1="100" y1="145" x2="122" y2="167" stroke="#333333" stroke-width="6" stroke-linecap="round"/>
+    <line x1="145" y1="100" x2="167" y2="122" stroke="#333333" stroke-width="6" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Círculo de fundo para os ponteiros -->
+  <circle cx="256" cy="256" r="140" fill="#f0ebf5" opacity="0.5"/>
+  
+  <!-- Ponteiros -->
+  <line x1="256" y1="256" x2="180" y2="256" stroke="#64008C" stroke-width="16" stroke-linecap="round"/>
+  <line x1="256" y1="256" x2="256" y2="136" stroke="#64008C" stroke-width="12" stroke-linecap="round"/>
+  
+  <!-- Centro com múltiplas camadas -->
+  <circle cx="256" cy="256" r="30" fill="#64008C"/>
+  <circle cx="256" cy="256" r="22" fill="#ffffff"/>
+  <circle cx="256" cy="256" r="14" fill="#23C6AF"/>
+  <circle cx="250" cy="250" r="6" fill="#ffffff" opacity="0.8"/>
+  
+  <!-- Arco decorativo -->
+  <path d="M 160 310 Q 256 340 352 310" stroke="#23C6AF" stroke-width="5" fill="none" opacity="0.5" stroke-dasharray="12,12"/>
+  
+  <!-- Texto decorativo (opcional) -->
+  <text x="256" y="390" font-family="system-ui, -apple-system, sans-serif" font-size="32" font-weight="600" fill="#64008C" text-anchor="middle" opacity="0.6">MEU PONTO</text>
+</svg>

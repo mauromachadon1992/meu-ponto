@@ -1,0 +1,50 @@
+# Docker Compose para Coolify - Produção
+# Este arquivo é otimizado para deploy automático no Coolify
+
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.coolify
+    container_name: meu-ponto-app
+    restart: unless-stopped
+    
+    # Coolify irá mapear as portas automaticamente
+    ports:
+      - "${PORT:-80}:80"
+    
+    # Variáveis de ambiente (configurar no Coolify)
+    environment:
+      - NODE_ENV=production
+      - TZ=America/Sao_Paulo
+    
+    # Health check para Coolify monitorar
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Labels para Coolify
+    labels:
+      - "coolify.managed=true"
+      - "coolify.type=application"
+      - "coolify.name=meu-ponto"
+    
+    # Recursos (ajustar conforme necessário)
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+# Rede padrão
+networks:
+  default:
+    driver: bridge

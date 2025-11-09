@@ -1,0 +1,707 @@
+import { Component, signal, computed, inject, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import { toast } from 'ngx-sonner';
+import { HlmCard, HlmCardHeader, HlmCardTitle, HlmCardContent } from '@spartan-ng/helm/card';
+import { HlmButton } from '@spartan-ng/helm/button';
+import { HlmInput } from '@spartan-ng/helm/input';
+import { HlmLabel } from '@spartan-ng/helm/label';
+import { HlmAlert, HlmAlertDescription, HlmAlertIcon, HlmAlertTitle } from '@spartan-ng/helm/alert';
+import { HlmIcon } from '@spartan-ng/helm/icon';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import {
+  lucideCamera,
+  lucideMapPin,
+  lucideClock,
+  lucideUser,
+  lucideCircleCheck,
+  lucideCircleAlert,
+  lucideRefreshCw,
+  lucideX,
+  lucideLoader,
+} from '@ng-icons/lucide';
+import { AuthService } from '../../core/services/auth.service';
+import { FechamentoPontoService } from '../../core/services/fechamento-ponto.service';
+import { ConfiguracoesService } from '../../core/services/configuracoes.service';
+import { TipoRegistro } from '../../core/models';
+
+interface Localizacao {
+  latitude: number;
+  longitude: number;
+  precisao: number;
+  timestamp: number;
+}
+
+@Component({
+  selector: 'app-registro-ponto',
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    HlmCard,
+    HlmCardHeader,
+    HlmCardTitle,
+    HlmCardContent,
+    HlmButton,
+    HlmInput,
+    HlmLabel,
+    HlmAlert,
+    HlmAlertDescription,
+    HlmAlertIcon,
+    HlmAlertTitle,
+    HlmIcon,
+    NgIcon,
+  ],
+  providers: [
+    provideIcons({
+      lucideCamera,
+      lucideMapPin,
+      lucideClock,
+      lucideUser,
+      lucideCircleCheck,
+      lucideCircleAlert,
+      lucideRefreshCw,
+      lucideX,
+      lucideLoader,
+    }),
+  ],
+  template: `
+    <div class="container mx-auto p-4 max-w-4xl">
+      <div class="grid gap-6 md:grid-cols-2">
+        <!-- Card de Informações -->
+        <div hlmCard>
+          <div hlmCardHeader>
+            <h3 hlmCardTitle class="flex items-center gap-2">
+              <ng-icon hlm name="lucideClock" size="sm" />
+              Registro de Ponto
+            </h3>
+          </div>
+          <div hlmCardContent class="space-y-4">
+            <!-- Data e Hora Atual -->
+            <div class="space-y-2">
+              <div class="text-center p-4 bg-muted rounded-lg">
+                <div class="text-3xl font-bold">{{ horaAtual() }}</div>
+                <div class="text-sm text-muted-foreground">{{ dataAtual() }}</div>
+              </div>
+            </div>
+
+            <!-- Localização Atual -->
+            @if (configuracaoLocalizacao().ativa) {
+              <div class="space-y-2">
+                <div class="flex items-center gap-2 text-sm font-medium">
+                  <ng-icon hlm name="lucideMapPin" size="sm" />
+                  Localização
+                </div>
+                @if (localizacaoCarregando()) {
+                  <div class="flex items-center gap-2 text-sm text-muted-foreground">
+                    <ng-icon hlm name="lucideLoader" size="sm" class="animate-spin" />
+                    Obtendo localização...
+                  </div>
+                } @else if (localizacaoAtual()) {
+                  <div class="p-3 bg-muted rounded-lg space-y-1">
+                    <div class="text-sm">
+                      <strong>Lat:</strong> {{ localizacaoAtual()!.latitude.toFixed(6) }}
+                    </div>
+                    <div class="text-sm">
+                      <strong>Lng:</strong> {{ localizacaoAtual()!.longitude.toFixed(6) }}
+                    </div>
+                    <div class="text-sm">
+                      <strong>Precisão:</strong> {{ localizacaoAtual()!.precisao.toFixed(0) }}m
+                    </div>
+                    @if (dentroDoRaio()) {
+                      <div class="flex items-center gap-2 text-sm text-green-600 dark:text-green-400 mt-2">
+                        <ng-icon hlm name="lucideCircleCheck" size="sm" />
+                        Dentro do raio permitido
+                      </div>
+                    } @else {
+                      <div class="flex items-center gap-2 text-sm text-destructive mt-2">
+                        <ng-icon hlm name="lucideCircleAlert" size="sm" />
+                        Fora do raio permitido ({{ distanciaDoLocal().toFixed(0) }}m de {{ configuracaoLocalizacao().raioMaximo }}m)
+                      </div>
+                    }
+                  </div>
+                } @else if (erroLocalizacao()) {
+                  <div hlmAlert variant="destructive">
+                    <ng-icon hlm hlmAlertIcon name="lucideCircleAlert" />
+                    <h4 hlmAlertTitle>Erro de Localização</h4>
+                    <p hlmAlertDescription>{{ erroLocalizacao() }}</p>
+                  </div>
+                }
+              </div>
+            }
+
+            <!-- Status do Usuário -->
+            @if (usuarioVerificado()) {
+              <div hlmAlert>
+                <ng-icon hlm hlmAlertIcon name="lucideCircleCheck" />
+                <h4 hlmAlertTitle>Usuário Verificado</h4>
+                <p hlmAlertDescription>
+                  <strong>{{ usuarioVerificado()!.nome }}</strong><br />
+                  {{ usuarioVerificado()!.cargo }} - {{ usuarioVerificado()!.departamento }}
+                </p>
+              </div>
+            }
+
+            <!-- Último Registro -->
+            @if (ultimoRegistro()) {
+              <div class="p-3 bg-muted rounded-lg">
+                <div class="text-sm font-medium mb-1">Último Registro</div>
+                <div class="text-sm">{{ ultimoRegistro() }}</div>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Card de Ação -->
+        <div hlmCard>
+          <div hlmCardHeader>
+            <h3 hlmCardTitle class="flex items-center gap-2">
+              <ng-icon hlm name="lucideCamera" size="sm" />
+              Captura Biométrica
+            </h3>
+          </div>
+          <div hlmCardContent class="space-y-4">
+            <!-- Input PIN -->
+            <div class="space-y-2">
+              <label hlmLabel for="pin">PIN do Funcionário</label>
+              <input
+                hlmInput
+                type="password"
+                id="pin"
+                name="pin"
+                placeholder="Digite seu PIN de 4 dígitos"
+                maxlength="4"
+                [(ngModel)]="pin"
+                [disabled]="processando()"
+                (keyup.enter)="verificarUsuario()"
+                class="text-center text-2xl tracking-widest"
+              />
+            </div>
+
+            <!-- Botão Verificar PIN -->
+            @if (!usuarioVerificado()) {
+              <button
+                hlmBtn
+                variant="outline"
+                class="w-full"
+                [disabled]="pin.length !== 4 || processando()"
+                (click)="verificarUsuario()"
+              >
+                <ng-icon hlm name="lucideUser" size="sm" />
+                Verificar PIN
+              </button>
+            }
+
+            <!-- Vídeo para Captura -->
+            @if (usuarioVerificado()) {
+              <div class="space-y-3">
+                <div class="relative aspect-video bg-muted rounded-lg overflow-hidden">
+                  <video
+                    #videoElement
+                    class="w-full h-full object-cover"
+                    autoplay
+                    playsinline
+                  ></video>
+                  <canvas #canvasElement class="hidden"></canvas>
+                  
+                  @if (fotoCapturada()) {
+                    <div class="absolute inset-0 bg-black/80 flex items-center justify-center">
+                      <img [src]="fotoCapturada()" class="max-w-full max-h-full" alt="Foto capturada" />
+                    </div>
+                  }
+                </div>
+
+                <!-- Botões de Ação -->
+                <div class="grid grid-cols-2 gap-3">
+                  @if (!fotoCapturada()) {
+                    <button
+                      hlmBtn
+                      variant="default"
+                      class="w-full"
+                      [disabled]="!cameraAtiva() || processando()"
+                      (click)="capturarFoto()"
+                    >
+                      <ng-icon hlm name="lucideCamera" size="sm" />
+                      Capturar
+                    </button>
+                    <button
+                      hlmBtn
+                      variant="outline"
+                      class="w-full"
+                      [disabled]="processando()"
+                      (click)="cancelar()"
+                    >
+                      Cancelar
+                    </button>
+                  } @else {
+                    <button
+                      hlmBtn
+                      variant="default"
+                      class="w-full"
+                      [disabled]="processando() || (configuracaoLocalizacao().ativa && !dentroDoRaio())"
+                      (click)="registrarPonto()"
+                    >
+                      @if (processando()) {
+                        <ng-icon hlm name="lucideLoader" size="sm" class="animate-spin" />
+                      } @else {
+                        <ng-icon hlm name="lucideCircleCheck" size="sm" />
+                      }
+                      Confirmar
+                    </button>
+                    <button
+                      hlmBtn
+                      variant="outline"
+                      class="w-full"
+                      [disabled]="processando()"
+                      (click)="descartarFoto()"
+                    >
+                      <ng-icon hlm name="lucideRefreshCw" size="sm" />
+                      Refazer
+                    </button>
+                  }
+                </div>
+
+                @if (configuracaoLocalizacao().ativa && !dentroDoRaio() && fotoCapturada()) {
+                  <div hlmAlert variant="destructive">
+                    <ng-icon hlm hlmAlertIcon name="lucideCircleAlert" />
+                    <p hlmAlertDescription>
+                      Você está fora do raio permitido para registrar o ponto.
+                    </p>
+                  </div>
+                }
+              </div>
+            }
+
+            <!-- Mensagens de Erro -->
+            @if (erroMensagem()) {
+              <div hlmAlert variant="destructive">
+                <ng-icon hlm hlmAlertIcon name="lucideCircleAlert" />
+                <p hlmAlertDescription>{{ erroMensagem() }}</p>
+              </div>
+            }
+
+            <!-- Mensagem de Sucesso -->
+            @if (sucessoMensagem()) {
+              <div hlmAlert>
+                <ng-icon hlm hlmAlertIcon name="lucideCircleCheck" />
+                <p hlmAlertDescription>{{ sucessoMensagem() }}</p>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Card de Configuração (apenas para admin) -->
+      @if (authService.user()?.isAdmin) {
+        <div hlmCard class="mt-6">
+          <div hlmCardHeader>
+            <h3 hlmCardTitle class="flex items-center gap-2">
+              <ng-icon hlm name="lucideMapPin" size="sm" />
+              Configurações de Localização
+            </h3>
+          </div>
+          <div hlmCardContent class="space-y-4">
+            <div class="flex items-center gap-4">
+              <input
+                type="checkbox"
+                id="ativarLocalizacao"
+                [(ngModel)]="configuracaoLocalizacao().ativa"
+                (change)="salvarConfiguracaoLocalizacao()"
+                class="w-4 h-4"
+              />
+              <label hlmLabel for="ativarLocalizacao" class="cursor-pointer">
+                Exigir localização para registros
+              </label>
+            </div>
+
+            @if (configuracaoLocalizacao().ativa) {
+              <div class="grid gap-4 md:grid-cols-2">
+                <div class="space-y-2">
+                  <label hlmLabel for="raioMaximo">Raio Máximo (metros)</label>
+                  <input
+                    hlmInput
+                    type="number"
+                    id="raioMaximo"
+                    [(ngModel)]="configuracaoLocalizacao().raioMaximo"
+                    (change)="salvarConfiguracaoLocalizacao()"
+                    min="10"
+                    step="10"
+                  />
+                </div>
+                <div class="space-y-2">
+                  <label hlmLabel for="nomeLocal">Nome do Local</label>
+                  <input
+                    hlmInput
+                    type="text"
+                    id="nomeLocal"
+                    [(ngModel)]="configuracaoLocalizacao().localizacaoBase.nome"
+                    (change)="salvarConfiguracaoLocalizacao()"
+                  />
+                </div>
+                <div class="space-y-2">
+                  <label hlmLabel for="latitude">Latitude</label>
+                  <input
+                    hlmInput
+                    type="number"
+                    id="latitude"
+                    [(ngModel)]="configuracaoLocalizacao().localizacaoBase.latitude"
+                    (change)="salvarConfiguracaoLocalizacao()"
+                    step="0.000001"
+                  />
+                </div>
+                <div class="space-y-2">
+                  <label hlmLabel for="longitude">Longitude</label>
+                  <input
+                    hlmInput
+                    type="number"
+                    id="longitude"
+                    [(ngModel)]="configuracaoLocalizacao().localizacaoBase.longitude"
+                    (change)="salvarConfiguracaoLocalizacao()"
+                    step="0.000001"
+                  />
+                </div>
+              </div>
+
+              <button
+                hlmBtn
+                variant="outline"
+                size="sm"
+                [disabled]="localizacaoCarregando()"
+                (click)="usarLocalizacaoAtual()"
+              >
+                <ng-icon hlm name="lucideMapPin" size="sm" />
+                Usar Localização Atual
+              </button>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  `,
+})
+export class RegistroPontoComponent implements OnInit, OnDestroy {
+  @ViewChild('videoElement') videoElement!: ElementRef<HTMLVideoElement>;
+  @ViewChild('canvasElement') canvasElement!: ElementRef<HTMLCanvasElement>;
+
+  readonly authService = inject(AuthService);
+  private readonly pontoService = inject(FechamentoPontoService);
+  private readonly configService = inject(ConfiguracoesService);
+  private readonly router = inject(Router);
+
+  // Estado
+  pin = '';
+  horaAtual = signal('00:00:00');
+  dataAtual = signal('');
+  usuarioVerificado = signal<any>(null);
+  localizacaoAtual = signal<Localizacao | null>(null);
+  localizacaoCarregando = signal(false);
+  erroLocalizacao = signal<string | null>(null);
+  cameraAtiva = signal(false);
+  fotoCapturada = signal<string | null>(null);
+  processando = signal(false);
+  ultimoRegistro = signal<string | null>(null);
+
+  private mediaStream: MediaStream | null = null;
+  private relogioInterval?: number;
+  private watchPositionId?: number;
+
+  // Usar configurações do serviço
+  configuracaoLocalizacao = computed(() => this.configService.configuracoes().localizacao);
+
+  dentroDoRaio = computed(() => {
+    if (!this.configuracaoLocalizacao().ativa) return true;
+    if (!this.localizacaoAtual()) return false;
+    return this.distanciaDoLocal() <= this.configuracaoLocalizacao().raioMaximo;
+  });
+
+  distanciaDoLocal = computed(() => {
+    if (!this.localizacaoAtual()) return Infinity;
+    
+    const loc = this.localizacaoAtual()!;
+    const base = this.configuracaoLocalizacao().localizacaoBase;
+    
+    return this.calcularDistancia(
+      loc.latitude,
+      loc.longitude,
+      base.latitude,
+      base.longitude
+    );
+  });
+
+  ngOnInit() {
+    this.iniciarRelogio();
+    this.atualizarData();
+    
+    if (this.configuracaoLocalizacao().ativa) {
+      this.iniciarMonitoramentoLocalizacao();
+    }
+  }
+
+  ngOnDestroy() {
+    this.pararRelogio();
+    this.pararMonitoramentoLocalizacao();
+    this.pararCamera();
+  }
+
+  private iniciarRelogio() {
+    this.atualizarHora();
+    this.relogioInterval = window.setInterval(() => {
+      this.atualizarHora();
+    }, 1000);
+  }
+
+  private pararRelogio() {
+    if (this.relogioInterval) {
+      clearInterval(this.relogioInterval);
+    }
+  }
+
+  private atualizarHora() {
+    const agora = new Date();
+    this.horaAtual.set(agora.toLocaleTimeString('pt-BR'));
+  }
+
+  private atualizarData() {
+    const agora = new Date();
+    const opcoes: Intl.DateTimeFormatOptions = {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    };
+    this.dataAtual.set(agora.toLocaleDateString('pt-BR', opcoes));
+  }
+
+  private iniciarMonitoramentoLocalizacao() {
+    if (!navigator.geolocation) {
+      this.erroLocalizacao.set('Geolocalização não suportada pelo navegador');
+      return;
+    }
+
+    this.localizacaoCarregando.set(true);
+
+    this.watchPositionId = navigator.geolocation.watchPosition(
+      (position) => {
+        this.localizacaoAtual.set({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          precisao: position.coords.accuracy,
+          timestamp: position.timestamp,
+        });
+        this.localizacaoCarregando.set(false);
+        this.erroLocalizacao.set(null);
+      },
+      (error) => {
+        this.localizacaoCarregando.set(false);
+        this.erroLocalizacao.set(this.getErroLocalizacao(error));
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
+  }
+
+  private pararMonitoramentoLocalizacao() {
+    if (this.watchPositionId !== undefined) {
+      navigator.geolocation.clearWatch(this.watchPositionId);
+    }
+  }
+
+  private getErroLocalizacao(error: GeolocationPositionError): string {
+    switch (error.code) {
+      case error.PERMISSION_DENIED:
+        return 'Permissão de localização negada';
+      case error.POSITION_UNAVAILABLE:
+        return 'Localização indisponível';
+      case error.TIMEOUT:
+        return 'Tempo limite para obter localização excedido';
+      default:
+        return 'Erro desconhecido ao obter localização';
+    }
+  }
+
+  private calcularDistancia(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371e3; // Raio da Terra em metros
+    const φ1 = (lat1 * Math.PI) / 180;
+    const φ2 = (lat2 * Math.PI) / 180;
+    const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+    const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
+    const a =
+      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c;
+  }
+
+  async verificarUsuario() {
+    if (this.pin.length !== 4) return;
+
+    this.processando.set(true);
+    this.erroMensagem.set(null);
+
+    this.authService.loginWithPin({ pin: this.pin }).subscribe({
+      next: (user) => {
+        this.usuarioVerificado.set(user);
+        this.processando.set(false);
+        this.iniciarCamera();
+      },
+      error: (error) => {
+        this.erroMensagem.set('PIN inválido');
+        this.processando.set(false);
+        this.pin = '';
+      },
+    });
+  }
+
+  private async iniciarCamera() {
+    try {
+      this.mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: 'user',
+        },
+      });
+
+      // Aguardar o próximo ciclo para garantir que o ViewChild está disponível
+      setTimeout(() => {
+        if (this.videoElement?.nativeElement) {
+          this.videoElement.nativeElement.srcObject = this.mediaStream;
+          this.cameraAtiva.set(true);
+        }
+      }, 100);
+    } catch (error) {
+      this.erroMensagem.set('Erro ao acessar a câmera. Verifique as permissões.');
+      console.error('Erro ao iniciar câmera:', error);
+    }
+  }
+
+  private pararCamera() {
+    if (this.mediaStream) {
+      this.mediaStream.getTracks().forEach((track) => track.stop());
+      this.mediaStream = null;
+    }
+    this.cameraAtiva.set(false);
+  }
+
+  capturarFoto() {
+    if (!this.videoElement?.nativeElement || !this.canvasElement?.nativeElement) {
+      return;
+    }
+
+    const video = this.videoElement.nativeElement;
+    const canvas = this.canvasElement.nativeElement;
+    const context = canvas.getContext('2d');
+
+    if (!context) return;
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    context.drawImage(video, 0, 0);
+
+    this.fotoCapturada.set(canvas.toDataURL('image/jpeg', 0.8));
+    this.pararCamera();
+  }
+
+  descartarFoto() {
+    this.fotoCapturada.set(null);
+    this.iniciarCamera();
+  }
+
+  async registrarPonto() {
+    if (!this.usuarioVerificado() || !this.fotoCapturada()) return;
+
+    if (this.configuracaoLocalizacao().ativa && !this.dentroDoRaio()) {
+      this.erroMensagem.set('Você está fora do raio permitido');
+      return;
+    }
+
+    this.processando.set(true);
+    this.erroMensagem.set(null);
+
+    const agora = new Date();
+    const horario = agora.toTimeString().slice(0, 5); // HH:mm
+
+    const registro = {
+      userId: this.usuarioVerificado()!.id,
+      data: agora.toISOString(),
+      horario,
+      fotoBase64: this.fotoCapturada(),
+      localizacao: this.localizacaoAtual() ? {
+        latitude: this.localizacaoAtual()!.latitude,
+        longitude: this.localizacaoAtual()!.longitude,
+        precisao: this.localizacaoAtual()!.precisao,
+      } : null,
+      tipo: TipoRegistro.NORMAL,
+    };
+
+    // Simular envio (implementar chamada à API)
+    setTimeout(() => {
+      this.sucessoMensagem.set('Ponto registrado com sucesso!');
+      this.processando.set(false);
+      this.ultimoRegistro.set(`${horario} - ${agora.toLocaleDateString('pt-BR')}`);
+      
+      // Reset após 3 segundos
+      setTimeout(() => {
+        this.resetar();
+      }, 3000);
+    }, 1500);
+  }
+
+  cancelar() {
+    this.resetar();
+  }
+
+  private resetar() {
+    this.pin = '';
+    this.usuarioVerificado.set(null);
+    this.fotoCapturada.set(null);
+    this.erroMensagem.set(null);
+    this.sucessoMensagem.set(null);
+    this.pararCamera();
+  }
+
+  usarLocalizacaoAtual() {
+    if (this.localizacaoAtual()) {
+      this.configuracaoLocalizacao.update(config => ({
+        ...config,
+        localizacaoBase: {
+          ...config.localizacaoBase,
+          latitude: this.localizacaoAtual()!.latitude,
+          longitude: this.localizacaoAtual()!.longitude,
+        },
+      }));
+      this.salvarConfiguracaoLocalizacao();
+    }
+  }
+
+  salvarConfiguracaoLocalizacao() {
+    localStorage.setItem(
+      'configuracao_localizacao_ponto',
+      JSON.stringify(this.configuracaoLocalizacao())
+    );
+
+    // Reiniciar monitoramento se necessário
+    if (this.configuracaoLocalizacao().ativa && !this.watchPositionId) {
+      this.iniciarMonitoramentoLocalizacao();
+    } else if (!this.configuracaoLocalizacao().ativa && this.watchPositionId) {
+      this.pararMonitoramentoLocalizacao();
+    }
+  }
+
+  private carregarConfiguracaoLocalizacao() {
+    const saved = localStorage.getItem('configuracao_localizacao_ponto');
+    if (saved) {
+      try {
+        this.configuracaoLocalizacao.set(JSON.parse(saved));
+      } catch (error) {
+        console.error('Erro ao carregar configuração:', error);
+      }
+    }
+  }
+}

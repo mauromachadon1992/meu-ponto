@@ -1,0 +1,19 @@
+# Dockerfile para desenvolvimento com hot reload
+FROM oven/bun:1
+
+WORKDIR /app
+
+# Copiar arquivos de dependências
+COPY package.json bun.lockb ./
+
+# Instalar dependências
+RUN bun install
+
+# Copiar código fonte
+COPY . .
+
+# Expor porta do dev server
+EXPOSE 4200
+
+# Comando padrão (pode ser sobrescrito no docker-compose)
+CMD ["bun", "run", "start"]

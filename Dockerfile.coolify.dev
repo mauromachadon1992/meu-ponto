@@ -1,0 +1,23 @@
+# Dockerfile para desenvolvimento com Coolify
+FROM oven/bun:1
+
+WORKDIR /app
+
+# Copiar arquivos de dependências
+COPY package.json bun.lockb ./
+
+# Instalar dependências
+RUN bun install --frozen-lockfile
+
+# Copiar código fonte
+COPY . .
+
+# Expor porta do dev server
+EXPOSE 4200
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
+  CMD wget --quiet --tries=1 --spider http://localhost:4200 || exit 1
+
+# Comando para iniciar o servidor de desenvolvimento
+CMD ["bun", "run", "start", "--host", "0.0.0.0"]
