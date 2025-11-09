@@ -6,7 +6,7 @@ FROM oven/bun:1.1.42-alpine AS frontend-builder
 WORKDIR /app
 
 # Copiar arquivos de dependências
-COPY package.json bun.lockb ./
+COPY package.json bun.lock ./
 COPY tsconfig.json tsconfig.app.json angular.json ./
 COPY tailwind.config.js components.json ./
 
