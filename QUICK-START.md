@@ -2,6 +2,8 @@
 
 ## ⚡ Deploy em 5 Minutos
 
+> **✅ Atualização**: O servidor agora serve o frontend Angular na raiz (`/`) e a API em `/api/*`
+
 ### 1. Preparar Variáveis de Ambiente
 
 ```bash
@@ -41,6 +43,8 @@ bun run init:production
 ### ✅ Pronto!
 
 Acesse: `https://meuponto.seudominio.com`
+
+**Nota**: O frontend Angular será servido na raiz (`/`) e a API em `/api/*`
 
 ---
 

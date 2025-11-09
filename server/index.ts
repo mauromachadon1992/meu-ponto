@@ -1,5 +1,6 @@
 import { Elysia, t } from 'elysia';
 import { cors } from '@elysiajs/cors';
+import { staticPlugin } from '@elysiajs/static';
 import { prisma } from './lib/prisma';
 import {
   setConfiguracoes,
@@ -11,10 +12,43 @@ import {
   ehDomingo,
   type ConfiguracoesTrabalhistas,
 } from './lib/config-helper';
+import * as path from 'path';
+import * as fs from 'fs';
+
+const isProduction = process.env.NODE_ENV === 'production';
+const PORT = process.env.PORT || process.env.API_PORT || 3000;
+
+// Determinar caminho do frontend
+const publicPath = isProduction 
+  ? path.join(process.cwd(), 'public')
+  : path.join(process.cwd(), 'dist/meu-ponto/browser');
+
+// Verificar se o frontend existe
+const frontendExists = fs.existsSync(publicPath);
 
 const app = new Elysia()
-  .use(cors())
-  .get('/', () => ({ message: 'Meu Ponto API' }))
+  .use(cors());
+
+// Servir arquivos estáticos do Angular (somente se existir)
+if (frontendExists) {
+  app.use(
+    staticPlugin({
+      assets: publicPath,
+      prefix: '/',
+      alwaysStatic: false,
+    })
+  );
+}
+
+app
+  
+  // Health check
+  .get('/api/health', () => ({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    version: '1.0.0',
+  }))
   
   // Configurações Routes
   .group('/api/configuracoes', (app) =>
@@ -754,8 +788,64 @@ const app = new Elysia()
       )
   )
   
-  .listen(process.env.API_PORT || 3000);
+  // Fallback para Angular SPA (todas as rotas não-API servem index.html)
+  .get('*', ({ set, request }) => {
+    const url = new URL(request.url);
+    
+    // Se for rota da API, não fazer fallback
+    if (url.pathname.startsWith('/api/')) {
+      set.status = 404;
+      return { error: 'API endpoint not found' };
+    }
+    
+    // Se frontend não existe, retornar mensagem
+    if (!frontendExists) {
+      set.status = 503;
+      return { 
+        error: 'Frontend not built', 
+        message: 'Run "bun run build:prod" to build the Angular app',
+        api: 'API is available at /api/*'
+      };
+    }
+    
+    // Servir index.html para rotas do Angular
+    const indexPath = path.join(publicPath, 'index.html');
+    
+    if (fs.existsSync(indexPath)) {
+      set.headers['Content-Type'] = 'text/html; charset=utf-8';
+      const fileContent = fs.readFileSync(indexPath, 'utf-8');
+      return fileContent;
+    }
+    
+    set.status = 404;
+    return { error: 'Frontend index.html not found' };
+  })
+  
+  .listen(PORT);
 
-console.log(
-  `🦊 Elysia API rodando em ${app.server?.hostname}:${app.server?.port}`
-);
+console.log(`
+╔═══════════════════════════════════════════════════════════════╗
+║                                                               ║
+║  🦊 Meu Ponto - Sistema de Ponto Eletrônico                  ║
+║                                                               ║
+║  ✅ Servidor rodando em: http://${app.server?.hostname}:${app.server?.port.toString().padEnd(27)}║
+║  🌍 Ambiente: ${(isProduction ? 'PRODUÇÃO' : 'DESENVOLVIMENTO').padEnd(46)}║
+║  📂 Frontend: ${fs.existsSync(publicPath) ? 'Disponível' : 'Não encontrado'.padEnd(46)}║
+║  📊 Database: ${prisma ? 'Conectado' : 'Desconectado'.padEnd(46)}║
+║  ⏰ Timezone: ${(process.env.TZ || 'UTC').padEnd(46)}║
+║                                                               ║
+╚═══════════════════════════════════════════════════════════════╝
+`);
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  console.log('🛑 SIGTERM recebido, encerrando gracefully...');
+  await prisma.$disconnect();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('🛑 SIGINT recebido, encerrando gracefully...');
+  await prisma.$disconnect();
+  process.exit(0);
+});
