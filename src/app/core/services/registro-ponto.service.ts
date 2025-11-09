@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
 import { RegistroPonto } from '../models/registro-ponto.model';
 
 export interface RegistroPontoRequest {
@@ -38,7 +39,7 @@ export interface RegistroPontoResponse extends RegistroPonto {
 })
 export class RegistroPontoService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:3000/api/registros';
+  private apiUrl = environment.apiUrl + '/registros';
 
   registrarPonto(dados: RegistroPontoRequest): Observable<RegistroPontoResponse> {
     return this.http.post<RegistroPontoResponse>(this.apiUrl, dados);

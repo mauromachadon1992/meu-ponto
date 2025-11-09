@@ -1,5 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 import { ConfiguracoesTrabalhistas, CONFIGURACOES_PADRAO } from '../models/configuracoes.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root',
@@ -49,7 +50,8 @@ export class ConfiguracoesService {
     this.configuracoesState.set(configComTimestamp);
     
     // Sincronizar com backend
-    fetch('http://localhost:3000/api/configuracoes', {
+    const apiUrl = environment.apiUrl || '/api';
+    fetch(`${apiUrl}/configuracoes`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(config),

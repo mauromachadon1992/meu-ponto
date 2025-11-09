@@ -48,7 +48,7 @@ import { AuthService } from '../../core/services/auth.service';
         <div class="text-center mb-8">
           <div class="flex justify-center mb-6">
             <img 
-              src="logo-animated.svg" 
+              src="/logo-animated.svg" 
               alt="Meu Ponto - Logo Animado" 
               class="w-36 h-36 animate-[fade-in_0.8s_ease-out] drop-shadow-lg" 
             />
