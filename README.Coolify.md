@@ -26,7 +26,9 @@ meu-ponto/
 1. Acesse seu Coolify
 2. Clique em **"+ New Resource"**
 3. Selecione **"Application"**
-4. Escolha **"Docker Compose"**
+4. Escolha **"Public Repository"** ou conecte seu GitHub
+5. Selecione o repositório `meu-ponto`
+6. Build Pack: **Dockerfile**
 
 ### 2. Configurar Repositório
 
@@ -43,38 +45,48 @@ https://github.com/seu-usuario/meu-ponto.git
 
 #### Produção
 
-**Docker Compose File:**
+**Build Pack:**
 ```
-docker-compose.coolify.yml
+Dockerfile
+```
+
+**Dockerfile Path:**
+```
+Dockerfile.coolify
 ```
 
 **Build Settings:**
-- Build Command: `docker-compose -f docker-compose.coolify.yml build`
-- Start Command: `docker-compose -f docker-compose.coolify.yml up -d`
+- Port: `80`
+- Comando de start será automático (ENTRYPOINT no Dockerfile)
 
 **Environment Variables:**
 ```env
 NODE_ENV=production
 TZ=America/Sao_Paulo
-PORT=80
+API_URL=https://api.freitascasaeconstrucao.com.br
 ```
 
 #### Desenvolvimento
 
-**Docker Compose File:**
+**Build Pack:**
 ```
-docker-compose.coolify.dev.yml
+Dockerfile
+```
+
+**Dockerfile Path:**
+```
+Dockerfile.coolify.dev
 ```
 
 **Build Settings:**
-- Build Command: `docker-compose -f docker-compose.coolify.dev.yml build`
-- Start Command: `docker-compose -f docker-compose.coolify.dev.yml up -d`
+- Port: `4200`
+- Comando de start será automático
 
 **Environment Variables:**
 ```env
 NODE_ENV=development
 TZ=America/Sao_Paulo
-PORT=4200
+API_URL=http://localhost:3000
 ```
 
 ### 4. Configurar Domínio
