@@ -21,13 +21,25 @@ const publicPath = path.join(process.cwd(), 'dist/meu-ponto/browser');
 const indexHtmlPath = path.join(publicPath, 'index.html');
 
 const app = new Elysia({ name: 'MeuPonto.API' })
-  // CORS configurado apenas para desenvolvimento
+  // CORS configurado para permitir proxy reverso em produção
   .use(
     cors({
-      origin: isProduction ? false : true,
+      origin: true, // Permite todas as origens (proxy do Coolify)
       credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     })
   )
+  
+  // Middleware para tratar X-Forwarded-* headers do proxy
+  .onRequest(({ request }) => {
+    const forwardedProto = request.headers.get('x-forwarded-proto');
+    const forwardedHost = request.headers.get('x-forwarded-host');
+    
+    if (isProduction && forwardedProto && forwardedHost) {
+      console.log(`🔄 Proxy request: ${forwardedProto}://${forwardedHost}${new URL(request.url).pathname}`);
+    }
+  })
   
   // Health check
   .get('/api/health', () => ({
@@ -435,6 +447,7 @@ const app = new Elysia({ name: 'MeuPonto.API' })
   .listen({
     port: PORT,
     hostname: '0.0.0.0', // Essencial para Docker/Coolify
+    reusePort: true, // Melhor performance e reload
   });
 
 console.log(`

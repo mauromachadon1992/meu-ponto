@@ -57,6 +57,7 @@
     "@ng-icons/lucide": "^31.4.0",
     "@prisma/client": "^6.19.0",
     "@spartan-ng/brain": "^0.0.1-alpha.553",
+    "@types/bun": "^1.3.2",
     "autoprefixer": "^10.4.21",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

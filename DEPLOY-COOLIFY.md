@@ -42,10 +42,14 @@ DATABASE_URL=postgresql://postgres:SUA_SENHA_SEGURA_AQUI@postgres:5432/meu_ponto
 openssl rand -base64 32
 ```
 
-### 3. Configurar Portas
+### 3. Configurar Portas e Domínio
 
-- **Porta pública**: 3000 (ou configurar proxy reverso do Coolify)
-- A aplicação expõe apenas a porta 3000 (frontend + backend juntos)
+**⚠️ IMPORTANTE**: Configure o subdomínio ANTES do primeiro deploy!
+
+- **Container Port**: 3000
+- **Subdomínio**: Ex: `meu-ponto.seu-servidor.com` ou `ponto.exemplo.com`
+- **SSL/TLS**: Habilitar Let's Encrypt (automático)
+- **Proxy Headers**: O Coolify injeta automaticamente headers necessários
 
 ### 4. Volumes Persistentes
 
@@ -55,9 +59,34 @@ O Coolify criará automaticamente:
 
 ### 5. Deploy
 
-1. Clique em **Deploy**
-2. Aguarde o build (3-5 minutos na primeira vez)
-3. A aplicação estará disponível na URL configurada
+1. **Verifique todas as configurações acima**
+2. Clique em **Deploy**
+3. Aguarde o build (3-5 minutos na primeira vez)
+4. Acompanhe os logs durante o deploy
+5. **Teste após deploy**:
+   ```bash
+   # Health check
+   curl https://seu-dominio.com/api/health
+   
+   # Página inicial
+   curl -I https://seu-dominio.com/
+   ```
+
+### 6. Pós-Deploy - Primeira Inicialização
+
+**⚠️ OBRIGATÓRIO após primeiro deploy**:
+
+1. Abra o terminal do container `app` no Coolify
+2. Execute o script de inicialização:
+   ```bash
+   bun run init:production
+   ```
+3. **ANOTE as credenciais exibidas** (nome, email, PIN)
+4. Delete o arquivo de credenciais:
+   ```bash
+   rm /app/data/credentials-admin.json
+   ```
+5. Teste o login em: `https://seu-dominio.com/login`
 
 ## 🔧 Build Local (Teste antes do Deploy)
 
@@ -174,31 +203,97 @@ O Coolify faz deploy automático a cada push no branch configurado:
 
 ## 🐛 Troubleshooting
 
+### ⚠️ **Subdomínio não abre nada (tela em branco)**
+
+**Sintomas**:
+- Subdomínio configurado no Coolify
+- Deploy bem-sucedido
+- Ao acessar via navegador: página em branco ou erro de conexão
+
+**Causas comuns**:
+1. **CORS bloqueando proxy** (✅ CORRIGIDO na versão atual)
+2. **Headers de proxy não processados** (✅ CORRIGIDO na versão atual)
+3. **Container não escutando em 0.0.0.0** (✅ VERIFICADO)
+4. **SSL/TLS não configurado** no Coolify
+5. **Healthcheck falhando**
+
+**Diagnóstico**:
+```bash
+# 1. Verificar se container está rodando
+docker ps | grep meu-ponto-app
+
+# 2. Testar health check internamente
+docker exec -it meu-ponto-app curl http://localhost:3000/api/health
+
+# 3. Verificar logs do servidor
+docker logs meu-ponto-app | grep "Servidor rodando"
+
+# 4. Testar com headers de proxy
+curl -H "X-Forwarded-Proto: https" \
+     -H "X-Forwarded-Host: seu-dominio.com" \
+     http://localhost:3000/api/health
+
+# 5. Verificar se está escutando em todas as interfaces
+docker exec -it meu-ponto-app netstat -tulpn | grep 3000
+```
+
+**Solução**:
+1. **Garantir que SSL/TLS está habilitado** no Coolify
+2. **Verificar configuração de proxy** no Coolify:
+   - Deve estar em modo "HTTP/HTTPS"
+   - Port: 3000
+   - SSL: Habilitado
+3. **Verificar DNS** do subdomínio:
+   ```bash
+   nslookup seu-dominio.com
+   ```
+4. **Forçar rebuild** no Coolify (limpar cache)
+
 ### App não inicia
 ```bash
 # Ver logs completos
-docker-compose logs app
+docker logs meu-ponto-app
 
 # Comum: DATABASE_URL incorreta
 # Verificar se postgres:5432 está acessível
+docker exec -it meu-ponto-app ping postgres
 ```
 
 ### Erro de conexão com DB
 ```bash
 # Verificar saúde do PostgreSQL
-docker-compose ps postgres
+docker ps | grep postgres
 
 # Conectar manualmente
 docker exec -it meu-ponto-db psql -U postgres -d meu_ponto
+
+# Verificar DATABASE_URL
+docker exec -it meu-ponto-app env | grep DATABASE_URL
 ```
 
-### Frontend não carrega
+### Frontend não carrega (404 em assets)
 ```bash
 # Verificar se build foi criado
 docker exec -it meu-ponto-app ls -la dist/meu-ponto/browser/
 
-# Deve ter: index.html, main-*.js, styles-*.css
+# Deve ter: index.html, main-*.js, styles-*.css, assets/
+
+# Verificar MIME types
+curl -I https://seu-dominio.com/main.js
+# Deve retornar: Content-Type: application/javascript
 ```
+
+### Erro "Mixed Content" (HTTP em HTTPS)
+**Causa**: Angular está fazendo requests HTTP em página HTTPS.
+
+**Solução**: Verificar se `environment.prod.ts` usa URL relativa:
+```typescript
+apiUrl: '/api' // ✅ CORRETO (usa protocolo da página)
+// NÃO: apiUrl: 'http://...' // ❌ ERRADO
+```
+
+### 📋 Guia Completo de Troubleshooting
+Consulte: [COOLIFY-TROUBLESHOOTING.md](./COOLIFY-TROUBLESHOOTING.md)
 
 ## 📝 Estrutura dos Containers
 
