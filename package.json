@@ -1,21 +1,30 @@
 {
   "name": "meu-ponto",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
+    "build:prod": "ng build --configuration=production",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "server": "bun run server/index.ts",
     "server:dev": "bun --watch server/index.ts",
+    "server:prod": "NODE_ENV=production bun run server/index.production.ts",
     "prisma:generate": "DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/meu_ponto?schema=public\" prisma generate",
     "prisma:migrate": "DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/meu_ponto?schema=public\" prisma migrate dev",
-    "prisma:migrate:deploy": "DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/meu_ponto?schema=public\" prisma migrate deploy",
+    "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:seed": "DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/meu_ponto?schema=public\" bun run prisma/seed.ts",
     "prisma:studio": "DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/meu_ponto?schema=public\" prisma studio",
     "init:production": "bun run scripts/init-production.ts",
-    "dev": "concurrently \"bun run start\" \"bun run server:dev\""
+    "dev": "concurrently \"bun run start\" \"bun run server:dev\"",
+    "docker:build": "docker build -f Dockerfile.coolify -t meu-ponto:latest .",
+    "docker:up": "docker-compose -f docker-compose.coolify.yml up -d",
+    "docker:down": "docker-compose -f docker-compose.coolify.yml down",
+    "docker:logs": "docker-compose -f docker-compose.coolify.yml logs -f",
+    "deploy:coolify": "./deploy-coolify.sh",
+    "lint": "echo 'Lint not configured yet'",
+    "type-check": "tsc --noEmit"
   },
   "prisma": {
     "seed": "bun run prisma/seed.ts"
@@ -42,6 +51,7 @@
     "@angular/platform-browser": "^20.3.0",
     "@angular/router": "^20.3.0",
     "@elysiajs/cors": "^1.4.0",
+    "@elysiajs/static": "^1.4.6",
     "@ng-icons/core": "^31.4.0",
     "@ng-icons/lucide": "^31.4.0",
     "@prisma/client": "^6.19.0",

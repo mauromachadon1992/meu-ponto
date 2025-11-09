@@ -1,65 +1,81 @@
 # ========================================
-# Dockerfile para Coolify
-# Meu Ponto - Otimizado para Deploy
+# Dockerfile Otimizado com Entrypoint
+# Meu Ponto - Time Tracking System
+# Para uso com migrations automáticas
 # ========================================
 
+# ========================================
+# Stage 1: Build Frontend (Angular 20)
+# ========================================
 FROM node:20-alpine AS frontend-builder
 
 WORKDIR /app
 
+# Instalar Bun
 RUN npm install -g bun
 
-# Cache de dependências
+# Copiar arquivos de dependências primeiro (cache layer)
 COPY package.json bun.lockb* ./
 COPY components.json tsconfig*.json angular.json ./
 COPY tailwind.config.js prisma.config.ts ./
 
+# Instalar dependências
 RUN bun install --frozen-lockfile
 
-# Build do frontend
+# Copiar código fonte
 COPY src/ ./src/
 COPY public/ ./public/
 COPY libs/ ./libs/
 COPY prisma/ ./prisma/
 
+# Gerar Prisma Client e Build
 RUN bun run prisma:generate && \
     bun run build --configuration=production
 
 # ========================================
-# Runtime Stage
+# Stage 2: Runtime (Bun + Elysia)
 # ========================================
-FROM oven/bun:1-alpine
+FROM oven/bun:1-alpine AS runtime
 
-# Dependências do sistema
-RUN apk add --no-cache ca-certificates tzdata curl bash
+# Instalar dependências do sistema
+RUN apk add --no-cache \
+    ca-certificates \
+    tzdata \
+    curl \
+    bash
 
-# Usuário não-root
-RUN addgroup -g 1001 nodejs && adduser -S nodejs -u 1001
+# Criar usuário não-root
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
 
 WORKDIR /app
 
-# Dependências de produção
+# Copiar arquivos de configuração
 COPY --chown=nodejs:nodejs package.json bun.lockb* ./
 COPY --chown=nodejs:nodejs components.json tsconfig*.json prisma.config.ts ./
 
+# Instalar dependências de produção
 RUN bun install --production --frozen-lockfile
 
-# Prisma
+# Copiar Prisma
 COPY --chown=nodejs:nodejs prisma/ ./prisma/
+
+# Gerar Prisma Client
 RUN bun run prisma:generate
 
-# Código do servidor
+# Copiar código do servidor e scripts
 COPY --chown=nodejs:nodejs server/ ./server/
 COPY --chown=nodejs:nodejs scripts/ ./scripts/
 
-# Frontend build
+# Copiar build do frontend
 COPY --from=frontend-builder --chown=nodejs:nodejs /app/dist/meu-ponto/browser ./public
 
-# Entrypoint
+# Copiar entrypoint script
 COPY --chown=nodejs:nodejs docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-RUN mkdir -p /app/uploads && chown -R nodejs:nodejs /app
+# Criar diretórios necessários
+RUN mkdir -p /app/uploads && chown -R nodejs:nodejs /app/uploads
 
 # Configurações
 ENV TZ=America/Sao_Paulo \

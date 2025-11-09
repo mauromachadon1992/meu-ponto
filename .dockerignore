@@ -2,9 +2,15 @@
 node_modules
 bun.lockb
 
-# Build output
-dist
-.angular
+# Dependencies
+node_modules/
+.bun/
+
+# Build outputs
+dist/
+.angular/
+tmp/
+out-tsc/
 
 # Testes
 coverage
