@@ -128,9 +128,7 @@ const app = new Elysia()
   // Fallback para SPA routing (Angular)
   .get('*', ({ set }) => {
     set.headers['Content-Type'] = 'text/html; charset=utf-8';
-    const indexPath = isProduction 
-      ? path.join(process.cwd(), 'public', 'index.html')
-      : path.join(process.cwd(), 'dist/meu-ponto/browser', 'index.html');
+    const indexPath = path.join(process.cwd(), 'dist/meu-ponto/browser', 'index.html');
     
     return Bun.file(indexPath);
   })
