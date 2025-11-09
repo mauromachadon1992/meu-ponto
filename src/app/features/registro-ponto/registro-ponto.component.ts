@@ -65,9 +65,18 @@ interface Localizacao {
     }),
   ],
   template: `
-    <div class="min-h-screen flex flex-col items-center justify-center p-4">
+    <div class="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-primary/5 via-background to-secondary/5">
       <!-- Container Centralizado -->
       <div class="w-full max-w-2xl space-y-6">
+        <!-- Logo Animado -->
+        <div class="flex justify-center mb-4">
+          <img 
+            src="/logo-animated.svg" 
+            alt="Meu Ponto - Logo Animado" 
+            class="w-24 h-24 md:w-32 md:h-32 animate-[fade-in_0.8s_ease-out] drop-shadow-lg" 
+          />
+        </div>
+        
         <!-- Header com Data/Hora -->
         <div class="text-center">
           <div class="text-6x1 md:text-8xl font-bold mb-2">{{ horaAtual() }}</div>

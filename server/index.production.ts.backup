@@ -1,0 +1,186 @@
+import { Elysia, t } from 'elysia';
+import { cors } from '@elysiajs/cors';
+import { prisma } from './lib/prisma';
+import {
+  setConfiguracoes,
+  getConfiguracoes,
+  getPercentualHoraExtra,
+  calcularHorasNoturnas,
+  calcularMinutosAtraso,
+  calcularDSR,
+  ehDomingo,
+  type ConfiguracoesTrabalhistas,
+} from './lib/config-helper';
+import * as path from 'path';
+import * as fs from 'fs';
+
+const PORT = process.env.PORT || 3000;
+const isProduction = process.env.NODE_ENV === 'production';
+
+console.log('🔧 Configurando servidor...');
+console.log('📍 CWD:', process.cwd());
+console.log('🌐 PORT:', PORT);
+console.log('🏭 ENV:', process.env.NODE_ENV);
+console.log('🗄️  DATABASE_URL:', process.env.DATABASE_URL ? '✅ Configurada' : '❌ Não configurada');
+
+const publicPath = path.join(process.cwd(), 'dist/meu-ponto/browser');
+const indexHtmlPath = path.join(publicPath, 'index.html');
+
+const app = new Elysia()
+  // CORS configurado apenas para desenvolvimento
+  .use(
+    cors({
+      origin: isProduction ? false : true,
+      credentials: true,
+    })
+  )
+  
+  // Middleware para servir arquivos estáticos e SPA
+  .onBeforeHandle(({ path: reqPath, request }) => {
+    // Ignorar rotas API
+    if (reqPath.startsWith('/api/')) {
+      return;
+    }
+    
+    const cleanPath = reqPath.split('?')[0].split('#')[0];
+    const filePath = path.join(publicPath, cleanPath);
+    
+    // Servir arquivo estático se existir
+    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+      return Bun.file(filePath);
+    }
+    
+    // Para outras rotas não-API, servir index.html
+    return new Response(Bun.file(indexHtmlPath), {
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+      },
+    });
+  })
+  
+  // Health check
+  .get('/api/health', () => ({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    version: process.env.npm_package_version || '1.0.0',
+  }))
+  
+  // Configurações Routes
+  .group('/api/configuracoes', (app) =>
+    app
+      .get('/', () => {
+        return getConfiguracoes();
+      })
+      .post(
+        '/',
+        async ({ body }) => {
+          setConfiguracoes(body as ConfiguracoesTrabalhistas);
+          return { success: true, configuracoes: getConfiguracoes() };
+        },
+        {
+          body: t.Any(),
+        }
+      )
+  )
+  
+  // Auth Routes
+  .group('/api/auth', (app) =>
+    app
+      .post(
+        '/login-pin',
+        async ({ body }) => {
+          const { pin } = body;
+          
+          const user = await prisma.user.findUnique({
+            where: { pin },
+            select: {
+              id: true,
+              nome: true,
+              email: true,
+              avatar: true,
+              cargo: true,
+              departamento: true,
+              cargaHorariaDiaria: true,
+              salarioMensal: true,
+              isAdmin: true,
+            },
+          });
+
+          if (!user) {
+            return {
+              success: false,
+              error: 'PIN inválido',
+            };
+          }
+
+          return {
+            success: true,
+            user,
+          };
+        },
+        {
+          body: t.Object({
+            pin: t.String({ minLength: 4, maxLength: 4 }),
+          }),
+        }
+      )
+      .post(
+        '/login-face',
+        async ({ body }) => {
+          const user = await prisma.user.findFirst({
+            select: {
+              id: true,
+              nome: true,
+              email: true,
+              avatar: true,
+              cargo: true,
+              departamento: true,
+            },
+          });
+
+          if (!user) {
+            return {
+              success: false,
+              error: 'Nenhum usuário encontrado',
+            };
+          }
+
+          return {
+            success: true,
+            user,
+          };
+        }
+      )
+  )
+  
+  .listen({
+    port: PORT,
+    hostname: '0.0.0.0', // Essencial para Docker/Coolify
+  });
+
+console.log(`
+╔═══════════════════════════════════════════════════════════════╗
+║                                                               ║
+║  🦊 Meu Ponto - Sistema de Ponto Eletrônico                  ║
+║                                                               ║
+║  ✅ Servidor rodando em: http://${app.server?.hostname}:${app.server?.port || PORT}                ║
+║  🌍 Ambiente: ${isProduction ? 'PRODUÇÃO' : 'DESENVOLVIMENTO'}                                 ║
+║  📊 Database: ${prisma ? 'Conectado' : 'Desconectado'}                              ║
+║  ⏰ Timezone: ${process.env.TZ || 'UTC'}                           ║
+║                                                               ║
+╚═══════════════════════════════════════════════════════════════╝
+`);
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  console.log('🛑 SIGTERM recebido, encerrando gracefully...');
+  await prisma.$disconnect();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('🛑 SIGINT recebido, encerrando gracefully...');
+  await prisma.$disconnect();
+  process.exit(0);
+});

@@ -1,18 +1,11 @@
-import { Elysia, t } from 'elysia';
+import { Elysia } from 'elysia';
 import { cors } from '@elysiajs/cors';
-import { staticPlugin } from '@elysiajs/static';
-import { prisma } from './lib/prisma';
-import {
-  setConfiguracoes,
-  getConfiguracoes,
-  getPercentualHoraExtra,
-  calcularHorasNoturnas,
-  calcularMinutosAtraso,
-  calcularDSR,
-  ehDomingo,
-  type ConfiguracoesTrabalhistas,
-} from './lib/config-helper';
 import * as path from 'path';
+import * as fs from 'fs';
+
+// Import controllers
+import { configuracoesController } from './modules/configuracoes';
+import { authController } from './modules/auth';
 
 const PORT = process.env.PORT || 3000;
 const isProduction = process.env.NODE_ENV === 'production';
@@ -23,23 +16,15 @@ console.log('🌐 PORT:', PORT);
 console.log('🏭 ENV:', process.env.NODE_ENV);
 console.log('🗄️  DATABASE_URL:', process.env.DATABASE_URL ? '✅ Configurada' : '❌ Não configurada');
 
-const app = new Elysia()
+const publicPath = path.join(process.cwd(), 'dist/meu-ponto/browser');
+const indexHtmlPath = path.join(publicPath, 'index.html');
+
+const app = new Elysia({ name: 'MeuPonto.API' })
   // CORS configurado apenas para desenvolvimento
-  // Em produção, frontend e backend estão na mesma origem (não precisa CORS)
   .use(
     cors({
       origin: isProduction ? false : true,
       credentials: true,
-    })
-  )
-  
-  // Servir arquivos estáticos do Angular em produção
-  .use(
-    staticPlugin({
-      assets: path.join(process.cwd(), 'dist/meu-ponto/browser'),
-      prefix: '',
-      alwaysStatic: true,
-      indexHTML: true,
     })
   )
   
@@ -51,93 +36,44 @@ const app = new Elysia()
     version: process.env.npm_package_version || '1.0.0',
   }))
   
-  // Configurações Routes
-  .group('/api/configuracoes', (app) =>
-    app
-      .get('/', () => {
-        return getConfiguracoes();
-      })
-      .post(
-        '/',
-        async ({ body }) => {
-          setConfiguracoes(body as ConfiguracoesTrabalhistas);
-          return { success: true, configuracoes: getConfiguracoes() };
-        },
-        {
-          body: t.Any(),
-        }
-      )
-  )
+  // Use controllers
+  .use(configuracoesController)
+  .use(authController)
   
-  // Auth Routes
-  .group('/api/auth', (app) =>
-    app
-      .post(
-        '/login-pin',
-        async ({ body }) => {
-          const { pin } = body;
-          
-          const user = await prisma.user.findUnique({
-            where: { pin },
-            select: {
-              id: true,
-              nome: true,
-              email: true,
-              avatar: true,
-              cargo: true,
-              departamento: true,
-              cargaHorariaDiaria: true,
-              salarioMensal: true,
-              isAdmin: true,
-            },
-          });
-
-          if (!user) {
-            return {
-              success: false,
-              error: 'PIN inválido',
-            };
-          }
-
-          return {
-            success: true,
-            user,
-          };
+  // Servir arquivos estáticos e SPA (catch-all deve vir por último)
+  .get('*', ({ path: reqPath, request }) => {
+    // Ignorar rotas API
+    if (reqPath.startsWith('/api/')) {
+      return new Response('Not found', { status: 404 });
+    }
+    
+    // Remover query string e hash
+    const cleanPath = reqPath.split('?')[0].split('#')[0];
+    
+    // Tentar servir arquivo estático
+    const filePath = path.join(publicPath, cleanPath);
+    
+    // Verificar se arquivo existe
+    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+      const file = Bun.file(filePath);
+      // Envolver em Response para evitar bug de HEAD request
+      return new Response(request.method === 'HEAD' ? null : file, {
+        headers: {
+          'Content-Type': file.type || 'application/octet-stream',
+          'Content-Length': file.size.toString(),
         },
-        {
-          body: t.Object({
-            pin: t.String({ minLength: 4, maxLength: 4 }),
-          }),
-        }
-      )
-      .post(
-        '/login-face',
-        async ({ body }) => {
-          const user = await prisma.user.findFirst({
-            select: {
-              id: true,
-              nome: true,
-              email: true,
-              avatar: true,
-              cargo: true,
-              departamento: true,
-            },
-          });
-
-          if (!user) {
-            return {
-              success: false,
-              error: 'Nenhum usuário encontrado',
-            };
-          }
-
-          return {
-            success: true,
-            user,
-          };
-        }
-      )
-  )
+      });
+    }
+    
+    // Fallback para index.html (SPA routing)
+    const indexFile = Bun.file(indexHtmlPath);
+    return new Response(request.method === 'HEAD' ? null : indexFile, {
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Content-Length': indexFile.size.toString(),
+      },
+    });
+  })
   
   .listen({
     port: PORT,
@@ -151,7 +87,6 @@ console.log(`
 ║                                                               ║
 ║  ✅ Servidor rodando em: http://${app.server?.hostname}:${app.server?.port || PORT}                ║
 ║  🌍 Ambiente: ${isProduction ? 'PRODUÇÃO' : 'DESENVOLVIMENTO'}                                 ║
-║  📊 Database: ${prisma ? 'Conectado' : 'Desconectado'}                              ║
 ║  ⏰ Timezone: ${process.env.TZ || 'UTC'}                           ║
 ║                                                               ║
 ╚═══════════════════════════════════════════════════════════════╝
@@ -160,12 +95,10 @@ console.log(`
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   console.log('🛑 SIGTERM recebido, encerrando gracefully...');
-  await prisma.$disconnect();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
   console.log('🛑 SIGINT recebido, encerrando gracefully...');
-  await prisma.$disconnect();
   process.exit(0);
 });

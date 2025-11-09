@@ -73,6 +73,6 @@ export const routes: Routes = [
   },
   {
     path: '**',
-    redirectTo: 'fechamento-ponto',
+    redirectTo: 'registro-ponto',
   },
 ];
