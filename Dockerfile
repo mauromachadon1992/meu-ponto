@@ -29,7 +29,7 @@ FROM oven/bun:1.1.42-alpine AS backend-builder
 WORKDIR /app
 
 # Copiar arquivos de dependências
-COPY package.json bun.lockb ./
+COPY package.json bun.lock ./
 
 # Instalar dependências (incluindo Prisma)
 RUN bun install --frozen-lockfile
