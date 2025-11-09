@@ -38,8 +38,9 @@ RUN bun install --frozen-lockfile
 COPY prisma ./prisma
 RUN bunx prisma generate
 
-# Copiar código do servidor
+# Copiar código do servidor e scripts
 COPY server ./server
+COPY scripts ./scripts
 
 # ==========================================
 # Stage 3: Runtime - Produção
@@ -62,6 +63,7 @@ COPY --from=backend-builder --chown=nodejs:nodejs /app/node_modules ./node_modul
 COPY --from=backend-builder --chown=nodejs:nodejs /app/package.json ./
 COPY --from=backend-builder --chown=nodejs:nodejs /app/prisma ./prisma
 COPY --from=backend-builder --chown=nodejs:nodejs /app/server ./server
+COPY --from=backend-builder --chown=nodejs:nodejs /app/scripts ./scripts
 
 # Copiar build do frontend
 COPY --from=frontend-builder --chown=nodejs:nodejs /app/dist ./dist

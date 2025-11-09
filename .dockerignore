@@ -40,8 +40,7 @@ docker-compose*.yml
 README*.md
 LICENSE
 
-# Scripts
-scripts/
+# Credentials
 credentials-admin.json
 
 # Tests

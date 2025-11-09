@@ -145,13 +145,17 @@ async function main() {
       },
     };
     
+    const credentialsPath = process.env.NODE_ENV === 'production' 
+      ? '/app/data/credentials-admin.json' 
+      : 'credentials-admin.json';
+    
     writeFileSync(
-      'credentials-admin.json',
+      credentialsPath,
       JSON.stringify(credenciais, null, 2),
       'utf-8'
     );
     
-    console.log('💾 Credenciais salvas em: credentials-admin.json');
+    console.log(`💾 Credenciais salvas em: ${credentialsPath}`);
     console.log('⚠️  Lembre-se de deletar este arquivo após anotar as credenciais!\n');
     
   } catch (error) {
@@ -163,11 +167,18 @@ async function main() {
 }
 
 // Confirmação de segurança
-console.log('\n⚠️  ATENÇÃO: Este script irá DELETAR TODOS os dados do banco!');
-console.log('   Todos os usuários, registros e períodos serão removidos.');
-console.log('\n   Pressione Ctrl+C para cancelar ou aguarde 5 segundos...\n');
+const forceMode = process.argv.includes('--force') || process.argv.includes('-f');
 
-// Aguarda 5 segundos antes de executar
-await new Promise(resolve => setTimeout(resolve, 5000));
+if (!forceMode) {
+  console.log('\n⚠️  ATENÇÃO: Este script irá DELETAR TODOS os dados do banco!');
+  console.log('   Todos os usuários, registros e períodos serão removidos.');
+  console.log('\n   Pressione Ctrl+C para cancelar ou aguarde 5 segundos...');
+  console.log('   (Use --force para pular esta confirmação)\n');
+  
+  // Aguarda 5 segundos antes de executar
+  await new Promise(resolve => setTimeout(resolve, 5000));
+} else {
+  console.log('\n⚡ Modo --force ativado: pulando confirmação...\n');
+}
 
 main();

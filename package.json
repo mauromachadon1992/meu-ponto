@@ -17,6 +17,7 @@
     "prisma:seed": "DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/meu_ponto?schema=public\" bun run prisma/seed.ts",
     "prisma:studio": "DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/meu_ponto?schema=public\" prisma studio",
     "init:production": "bun run scripts/init-production.ts",
+    "init:production:force": "bun run scripts/init-production.ts --force",
     "dev": "concurrently \"bun run start\" \"bun run server:dev\"",
     "docker:build": "docker build -t meu-ponto:latest .",
     "docker:up": "docker-compose up -d",

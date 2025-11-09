@@ -119,15 +119,28 @@ Ao fazer o primeiro deploy:
 2. Execute o script de inicialização para criar usuário admin:
 
 ```bash
-# No container da aplicação
-docker exec -it meu-ponto-app bun run init:production
+# No container da aplicação (com confirmação de 5s)
+docker exec meu-ponto-app bun run init:production
+
+# OU sem confirmação (recomendado para scripts automatizados)
+docker exec meu-ponto-app bun run init:production:force
 ```
 
 Isso criará:
 - Usuário admin com PIN aleatório
-- Salva credenciais em `credentials-admin.json`
+- Salva credenciais em `/app/data/credentials-admin.json`
 
-**⚠️ IMPORTANTE**: Anote as credenciais e delete o arquivo JSON!
+**⚠️ IMPORTANTE**: Anote as credenciais exibidas no console!
+
+Para visualizar as credenciais salvas:
+```bash
+docker exec meu-ponto-app cat /app/data/credentials-admin.json
+```
+
+Para deletar o arquivo após anotar:
+```bash
+docker exec meu-ponto-app rm /app/data/credentials-admin.json
+```
 
 ### Migrations Futuras
 
