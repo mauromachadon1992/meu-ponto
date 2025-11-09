@@ -45,7 +45,7 @@ services:
       # Opcional: Configurações adicionais
       TZ: America/Sao_Paulo
     ports:
-      - "${APP_PORT:-3000}:3000"
+      - "${APP_PORT:-3000}:3000"  # Local: porta 3000 | Coolify: proxy automático em 80/443
     volumes:
       # Persistir dados de produção (fotos, etc)
       - app_data:/app/data

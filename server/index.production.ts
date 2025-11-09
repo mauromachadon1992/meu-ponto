@@ -24,14 +24,22 @@ console.log('🏭 ENV:', process.env.NODE_ENV);
 console.log('🗄️  DATABASE_URL:', process.env.DATABASE_URL ? '✅ Configurada' : '❌ Não configurada');
 
 const app = new Elysia()
-  .use(cors())
+  // CORS configurado apenas para desenvolvimento
+  // Em produção, frontend e backend estão na mesma origem (não precisa CORS)
+  .use(
+    cors({
+      origin: isProduction ? false : true,
+      credentials: true,
+    })
+  )
   
   // Servir arquivos estáticos do Angular em produção
   .use(
     staticPlugin({
       assets: path.join(process.cwd(), 'dist/meu-ponto/browser'),
-      prefix: '/',
+      prefix: '',
       alwaysStatic: true,
+      indexHTML: true,
     })
   )
   
@@ -130,14 +138,6 @@ const app = new Elysia()
         }
       )
   )
-  
-  // Fallback para SPA routing (Angular)
-  .get('*', ({ set }) => {
-    set.headers['Content-Type'] = 'text/html; charset=utf-8';
-    const indexPath = path.join(process.cwd(), 'dist/meu-ponto/browser', 'index.html');
-    
-    return Bun.file(indexPath);
-  })
   
   .listen(PORT);
 
