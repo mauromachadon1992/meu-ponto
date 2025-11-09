@@ -26,7 +26,6 @@ const app = new Elysia()
       assets: path.join(process.cwd(), 'dist/meu-ponto/browser'),
       prefix: '/',
       alwaysStatic: true,
-      noCache: !isProduction,
     })
   )
   
