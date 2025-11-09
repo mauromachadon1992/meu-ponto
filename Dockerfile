@@ -66,6 +66,10 @@ COPY --from=backend-builder --chown=nodejs:nodejs /app/server ./server
 # Copiar build do frontend
 COPY --from=frontend-builder --chown=nodejs:nodejs /app/dist ./dist
 
+# Copiar entrypoint
+COPY --chown=nodejs:nodejs docker/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
 # Criar diretório para arquivos de produção
 RUN mkdir -p /app/data && chown nodejs:nodejs /app/data
 
@@ -79,9 +83,9 @@ EXPOSE 3000
 ENV NODE_ENV=production
 ENV PORT=3000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+# Health check (aumentar start-period para 60s)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD bun run -e "fetch('http://localhost:3000/api/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"
 
-# Script de inicialização
-CMD ["sh", "-c", "bunx prisma migrate deploy && bun run server:prod"]
+# Entrypoint
+ENTRYPOINT ["/app/entrypoint.sh"]

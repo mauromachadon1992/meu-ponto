@@ -17,6 +17,12 @@ import * as path from 'path';
 const PORT = process.env.PORT || 3000;
 const isProduction = process.env.NODE_ENV === 'production';
 
+console.log('🔧 Configurando servidor...');
+console.log('📍 CWD:', process.cwd());
+console.log('🌐 PORT:', PORT);
+console.log('🏭 ENV:', process.env.NODE_ENV);
+console.log('🗄️  DATABASE_URL:', process.env.DATABASE_URL ? '✅ Configurada' : '❌ Não configurada');
+
 const app = new Elysia()
   .use(cors())
   
