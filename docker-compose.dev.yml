@@ -1,0 +1,27 @@
+version: '3.9'
+
+# Docker Compose SIMPLIFICADO - apenas PostgreSQL
+# Use este para desenvolvimento local com hot-reload
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: meu-ponto-db-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: meu_ponto
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_dev_data:
+    name: meu-ponto-postgres-dev

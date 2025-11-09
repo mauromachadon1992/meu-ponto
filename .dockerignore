@@ -1,53 +1,54 @@
-# Dependências
-node_modules
-bun.lockb
-
-# Dependencies
+# Node
 node_modules/
 .bun/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+bun.lockb.backup
 
-# Build outputs
-dist/
+# Build outputs (não ignorar dist/ - é necessário no build)
 .angular/
 tmp/
 out-tsc/
 
-# Testes
-coverage
-*.spec.ts
-
-# IDE
-.vscode
-.idea
-*.swp
-*.swo
-
-# Git
-.git
-.gitignore
-
-# Logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-*.log
-
-# Temporários
-.tmp
-.temp
-*.tmp
-
-# Sistema Operacional
-.DS_Store
-Thumbs.db
-
-# Ambiente
+# Environment
 .env
 .env.local
 .env.*.local
 
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+.github/
+
 # Docker
-Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Docs
+README*.md
+LICENSE
+
+# Scripts
+scripts/
+credentials-admin.json
+
+# Tests
+*.spec.ts
+coverage/
+karma.conf.js
+.editorconfig
 docker-compose.yml
 .dockerignore
 

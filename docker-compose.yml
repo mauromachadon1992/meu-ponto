@@ -1,8 +1,3 @@
-# ========================================
-# Docker Compose para Produção
-# Meu Ponto - Time Tracking System
-# ========================================
-
 version: '3.9'
 
 services:
@@ -12,68 +7,63 @@ services:
     container_name: meu-ponto-db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-meu_ponto}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=pt_BR.UTF-8"
-      TZ: America/Sao_Paulo
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-meu_ponto}
+      PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
-    networks:
-      - meu-ponto-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-meu_ponto}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - meu-ponto-network
 
-  # Aplicação Meu Ponto
+  # Aplicação (Frontend + Backend)
   app:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        NODE_ENV: production
     container_name: meu-ponto-app
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
     environment:
+      # Database
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-meu_ponto}?schema=public
+      
+      # Application
       NODE_ENV: production
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-meu_ponto}?schema=public
-      PORT: 3000
+      PORT: ${APP_PORT:-3000}
+      
+      # Opcional: Configurações adicionais
       TZ: America/Sao_Paulo
     ports:
       - "${APP_PORT:-3000}:3000"
+    volumes:
+      # Persistir dados de produção (fotos, etc)
+      - app_data:/app/data
     networks:
       - meu-ponto-network
-    volumes:
-      # Volume para uploads (se necessário)
-      - uploads:/app/uploads
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      test: ["CMD", "bun", "run", "-e", "fetch('http://localhost:3000/api/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"]
       interval: 30s
       timeout: 10s
-      retries: 3
       start_period: 40s
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 1G
-        reservations:
-          cpus: '0.5'
-          memory: 512M
-
-networks:
-  meu-ponto-network:
-    driver: bridge
+      retries: 3
 
 volumes:
   postgres_data:
-    driver: local
-  uploads:
-    driver: local
+    name: meu-ponto-postgres-data
+  app_data:
+    name: meu-ponto-app-data
+
+networks:
+  meu-ponto-network:
+    name: meu-ponto-network
+    driver: bridge

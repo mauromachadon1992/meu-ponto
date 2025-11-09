@@ -1,420 +1,223 @@
-# 🚀 Deploy no Coolify - Guia Completo
+# Deploy no Coolify - Meu Ponto
 
-## 📋 Pré-requisitos
+Guia de deploy da aplicação fullstack no Coolify com Docker.
 
-- Servidor Coolify configurado
-- Repositório Git (GitHub/GitLab)
-- PostgreSQL 16+ (pode ser provisionado pelo Coolify)
-- Domínio configurado (opcional, mas recomendado)
+## 🏗️ Arquitetura
 
-## 🎯 Métodos de Deploy
+- **Frontend**: Angular 20 (SPA servido como static files)
+- **Backend**: Elysia.js com Bun runtime
+- **Database**: PostgreSQL 16
+- **Container**: Dockerfile multi-stage otimizado
 
-### Método 1: Docker Compose (Recomendado) ⭐
+## 🚀 Deploy Automático no Coolify
 
-Este método provisiona automaticamente o PostgreSQL junto com a aplicação.
+### 1. Criar Novo Serviço
 
-#### 1. Criar Novo Resource no Coolify
+1. No Coolify, clique em **+ New** → **Docker Compose**
+2. Conecte seu repositório Git
+3. Branch: `main`
 
-1. Acesse seu painel do Coolify
-2. Clique em **"+ New Resource"**
-3. Selecione **"Docker Compose"**
+### 2. Configurar Variáveis de Ambiente
 
-#### 2. Configurar Repository
+No Coolify, adicione as seguintes variáveis:
 
-- **Repository URL**: `https://github.com/seu-usuario/meu-ponto.git`
-- **Branch**: `master`
-- **Docker Compose File**: `docker-compose.coolify.yml`
-- **Build Pack**: Docker Compose
-
-#### 3. Configurar Variáveis de Ambiente
-
-No painel do Coolify, adicione as seguintes variáveis:
-
-```env
-# Database (Obrigatório)
-POSTGRES_PASSWORD=<gere-senha-forte-aqui>
-
-# Opcionais (já têm valores padrão)
-POSTGRES_DB=meu_ponto
+```bash
+# Database
 POSTGRES_USER=postgres
-PORT=3000
+POSTGRES_PASSWORD=SUA_SENHA_SEGURA_AQUI
+POSTGRES_DB=meu_ponto
+POSTGRES_PORT=5432
+
+# Application
+APP_PORT=3000
 NODE_ENV=production
+TZ=America/Sao_Paulo
+
+# Database URL (construído automaticamente)
+DATABASE_URL=postgresql://postgres:SUA_SENHA_SEGURA_AQUI@postgres:5432/meu_ponto?schema=public
 ```
 
-**Gerar senha forte**:
+**⚠️ IMPORTANTE**: Gere uma senha forte para `POSTGRES_PASSWORD`:
 ```bash
 openssl rand -base64 32
 ```
 
-#### 4. Configurar Domínio (Opcional)
+### 3. Configurar Portas
 
-1. Vá em **Settings** > **Domains**
-2. Adicione seu domínio: `meuponto.seudominio.com`
-3. Coolify configurará automaticamente:
-   - Proxy reverso (Traefik/Caddy)
-   - Certificado SSL (Let's Encrypt)
-   - HTTPS redirect
+- **Porta pública**: 3000 (ou configurar proxy reverso do Coolify)
+- A aplicação expõe apenas a porta 3000 (frontend + backend juntos)
 
-#### 5. Deploy
+### 4. Volumes Persistentes
 
-1. Clique em **"Deploy"**
-2. Coolify irá:
-   - Clone do repositório
-   - Build das imagens
-   - Iniciar containers
-   - Executar migrations (via entrypoint)
-   - Configurar SSL
+O Coolify criará automaticamente:
+- `meu-ponto-postgres-data`: Dados do PostgreSQL
+- `meu-ponto-app-data`: Dados da aplicação (fotos, etc)
 
-#### 6. Pós-Deploy
+### 5. Deploy
+
+1. Clique em **Deploy**
+2. Aguarde o build (3-5 minutos na primeira vez)
+3. A aplicação estará disponível na URL configurada
+
+## 🔧 Build Local (Teste antes do Deploy)
 
 ```bash
-# Criar usuário admin inicial
-# Via terminal do container no Coolify:
-bun run init:production
+# 1. Build da imagem
+docker build -t meu-ponto:latest .
 
-# Ou via Coolify CLI (se disponível):
-coolify ssh <app-name> "bun run init:production"
+# 2. Testar com docker-compose
+cp .env.example .env
+# Edite .env com suas configurações
+
+docker-compose up -d
+
+# 3. Ver logs
+docker-compose logs -f app
+
+# 4. Acessar
+http://localhost:3000
+
+# 5. Parar
+docker-compose down
 ```
-
----
-
-### Método 2: Dockerfile Standalone + PostgreSQL Service
-
-#### 1. Criar Application
-
-1. **New Resource** > **Application**
-2. **Source**: Public/Private Repository
-3. **Build Pack**: Dockerfile
-4. **Dockerfile**: `Dockerfile.coolify`
-
-#### 2. Adicionar PostgreSQL Service
-
-1. No menu lateral, **Services** > **+ New Service**
-2. Selecione **PostgreSQL 16**
-3. Configure:
-   - Name: `meu-ponto-db`
-   - Database: `meu_ponto`
-   - User: `postgres`
-   - Password: `<senha-forte>`
-
-#### 3. Conectar Application ao Database
-
-Na aplicação, adicione a variável de ambiente:
-
-```env
-DATABASE_URL=postgresql://postgres:<password>@meu-ponto-db:5432/meu_ponto?schema=public
-```
-
-**Substitua**:
-- `<password>`: senha do PostgreSQL
-- `meu-ponto-db`: nome do serviço (pode variar no Coolify)
-
-#### 4. Configurar Post-Deployment Commands
-
-No Coolify, em **Settings** > **Commands** > **Post-deployment**:
-
-```bash
-bun run prisma:migrate:deploy
-```
-
-#### 5. Deploy
-
-Clique em **Deploy** e aguarde.
-
----
-
-## 🔧 Configurações Avançadas
-
-### Health Checks
-
-O Dockerfile já inclui health checks. No Coolify:
-
-- **Health Check Path**: `/`
-- **Health Check Port**: `3000`
-- **Start Period**: `40s`
-- **Interval**: `30s`
-
-### Resource Limits
-
-Configure em **Settings** > **Resources**:
-
-```yaml
-CPU: 1 core
-Memory: 1GB (limite), 512MB (reservado)
-```
-
-### Persistent Storage
-
-Para o volume de uploads (se necessário):
-
-1. **Settings** > **Storages**
-2. Add Storage:
-   - **Name**: `uploads`
-   - **Mount Path**: `/app/uploads`
-   - **Size**: `5GB`
-
-### Environment Variables
-
-Variáveis recomendadas:
-
-```env
-# Obrigatórias
-DATABASE_URL=postgresql://...
-POSTGRES_PASSWORD=<senha>
-
-# Opcionais
-NODE_ENV=production
-PORT=3000
-TZ=America/Sao_Paulo
-
-# Futuros (se implementar)
-JWT_SECRET=<secret>
-UPLOAD_MAX_SIZE=10485760
-```
-
----
-
-## 🔄 Workflows de Deploy
-
-### Deploy Automático (CI/CD)
-
-Configure no Coolify:
-
-1. **Settings** > **General** > **Automatic Deployment**
-2. Ative **Deploy on Push**
-3. Configure Webhook no GitHub:
-   - Payload URL: `<coolify-webhook-url>`
-   - Content type: `application/json`
-   - Events: `push` (branch master)
-
-### Deploy Manual
-
-1. Via painel do Coolify: botão **"Deploy"**
-2. Via CLI (se disponível):
-   ```bash
-   coolify deploy <app-name>
-   ```
-
-### Rollback
-
-1. **Deployments** > Histórico
-2. Selecione versão anterior
-3. Clique em **"Redeploy"**
-
----
 
 ## 📊 Monitoramento
 
-### Logs
-
-**Via Coolify UI**:
-- **Logs** > Real-time logs
-- Filtre por container: `app`, `postgres`
-
-**Via Docker**:
+### Health Check
 ```bash
-# SSH no servidor
-ssh user@seu-servidor
-
-# Ver logs
-docker logs -f <container-id>
+curl http://seu-dominio.com/api/health
 ```
 
-### Métricas
+Resposta esperada:
+```json
+{
+  "status": "ok",
+  "timestamp": "2025-11-09T...",
+  "environment": "production",
+  "version": "1.0.0"
+}
+```
 
-Coolify fornece métricas básicas:
-- CPU usage
-- Memory usage
-- Network I/O
-- Disk usage
+### Logs no Coolify
+- Acesse a aba **Logs** do serviço
+- Filtre por `app` ou `postgres`
 
-### Alertas
+## 🔐 Segurança
 
-Configure em **Settings** > **Notifications**:
-- Email
-- Slack
-- Discord
-- Telegram
+1. **Senha do PostgreSQL**: Use senha forte (min. 32 caracteres)
+2. **Backup**: Configure backup automático do volume PostgreSQL
+3. **HTTPS**: Configure SSL/TLS no Coolify (automático com Let's Encrypt)
+4. **Firewall**: Limite acesso ao PostgreSQL (apenas interno)
 
----
+## 🗄️ Banco de Dados
+
+### Primeira Inicialização
+
+Ao fazer o primeiro deploy:
+
+1. As migrations serão executadas automaticamente (`prisma migrate deploy`)
+2. Execute o script de inicialização para criar usuário admin:
+
+```bash
+# No container da aplicação
+docker exec -it meu-ponto-app bun run init:production
+```
+
+Isso criará:
+- Usuário admin com PIN aleatório
+- Salva credenciais em `credentials-admin.json`
+
+**⚠️ IMPORTANTE**: Anote as credenciais e delete o arquivo JSON!
+
+### Migrations Futuras
+
+```bash
+# Executar novas migrations
+docker exec -it meu-ponto-app bunx prisma migrate deploy
+
+# Ver status das migrations
+docker exec -it meu-ponto-app bunx prisma migrate status
+```
+
+### Backup e Restore
+
+```bash
+# Backup
+docker exec meu-ponto-db pg_dump -U postgres meu_ponto > backup.sql
+
+# Restore
+cat backup.sql | docker exec -i meu-ponto-db psql -U postgres meu_ponto
+```
+
+## 🔄 Atualizações
+
+O Coolify faz deploy automático a cada push no branch configurado:
+
+1. Push para `main`
+2. Coolify detecta mudanças
+3. Build da nova imagem
+4. Zero-downtime deployment
+5. Health check valida nova versão
 
 ## 🐛 Troubleshooting
 
-### Aplicação não inicia
-
-**1. Verificar logs**:
-```
-Coolify UI > Logs > Real-time
-```
-
-**2. Variáveis de ambiente**:
-Verifique se `DATABASE_URL` e `POSTGRES_PASSWORD` estão corretas.
-
-**3. Conexão com banco**:
+### App não inicia
 ```bash
-# Via terminal do container
-docker exec -it <app-container> sh
-bun -e "import { PrismaClient } from '@prisma/client'; const p = new PrismaClient(); await p.\$connect(); console.log('OK')"
+# Ver logs completos
+docker-compose logs app
+
+# Comum: DATABASE_URL incorreta
+# Verificar se postgres:5432 está acessível
 ```
 
-### Erro de Migrations
-
-**Sintoma**: `P1001: Can't reach database server`
-
-**Solução**:
-1. Verificar se PostgreSQL está rodando
-2. Verificar `DATABASE_URL`
-3. Executar manualmente:
-   ```bash
-   docker exec -it <app-container> bun run prisma:migrate:deploy
-   ```
-
-### Porta já em uso
-
-**Sintoma**: `Error: Port 3000 already in use`
-
-**Solução**:
-- Altere a variável `PORT` no Coolify
-- Ou libere a porta 3000 no servidor
-
-### Build falha
-
-**Sintoma**: `Build failed` durante o deploy
-
-**Soluções**:
-1. **Cache inválido**: Force rebuild sem cache
-2. **Dependências**: Verifique `package.json` e `bun.lockb`
-3. **Dockerfile**: Teste localmente:
-   ```bash
-   docker build -f Dockerfile.coolify -t meu-ponto:test .
-   ```
-
-### Performance Ruim
-
-**Soluções**:
-1. Aumentar recursos (CPU/Memory)
-2. Verificar queries lentas (Prisma logging)
-3. Adicionar índices no banco
-4. Implementar cache (Redis)
-
----
-
-## 🔒 Segurança
-
-### Checklist de Produção
-
-- [ ] Senha forte do PostgreSQL (min 32 caracteres)
-- [ ] SSL/TLS ativado (Let's Encrypt)
-- [ ] Variáveis sensíveis não commitadas
-- [ ] Firewall configurado (apenas portas 80/443/22)
-- [ ] Backups automáticos configurados
-- [ ] Logs de acesso habilitados
-- [ ] Rate limiting (via Coolify/Caddy)
-- [ ] CORS configurado corretamente
-- [ ] Headers de segurança (CSP, HSTS)
-
-### Backup Automático
-
-Configure no Coolify:
-1. **Settings** > **Backups**
-2. **PostgreSQL Backups**:
-   - Schedule: `0 2 * * *` (2h da manhã)
-   - Retention: 30 dias
-   - Destination: S3/Local
-
----
-
-## 📚 Scripts Úteis
-
-### Script de Deploy Local para Coolify
-
+### Erro de conexão com DB
 ```bash
-#!/bin/bash
-# deploy.sh
+# Verificar saúde do PostgreSQL
+docker-compose ps postgres
 
-chmod +x deploy-coolify.sh
-./deploy-coolify.sh
+# Conectar manualmente
+docker exec -it meu-ponto-db psql -U postgres -d meu_ponto
 ```
 
-### Script de Backup Manual
-
+### Frontend não carrega
 ```bash
-#!/bin/bash
-# backup.sh
+# Verificar se build foi criado
+docker exec -it meu-ponto-app ls -la dist/meu-ponto/browser/
 
-DATE=$(date +%Y%m%d_%H%M%S)
-BACKUP_DIR="./backups/$DATE"
-mkdir -p "$BACKUP_DIR"
-
-# Backup do banco via Coolify
-coolify backup postgres meu-ponto-db -o "$BACKUP_DIR/database.sql.gz"
-
-echo "✅ Backup salvo em $BACKUP_DIR"
+# Deve ter: index.html, main-*.js, styles-*.css
 ```
 
-### Script de Health Check
+## 📝 Estrutura dos Containers
 
-```bash
-#!/bin/bash
-# health-check.sh
-
-URL="https://meuponto.seudominio.com"
-
-if curl -f -s "$URL/" > /dev/null; then
-    echo "✅ App is healthy"
-    exit 0
-else
-    echo "❌ App is down"
-    exit 1
-fi
+### Container `app`
+```
+/app
+├── dist/meu-ponto/browser/  # Frontend (Angular build)
+├── server/                   # Backend (Elysia.js)
+├── node_modules/             # Dependências
+├── prisma/                   # Schema + Client
+└── data/                     # Dados persistentes (fotos)
 ```
 
----
+### Container `postgres`
+```
+/var/lib/postgresql/data/pgdata  # Dados do PostgreSQL
+```
 
-## 🎯 Próximos Passos
+## 🎯 URLs da Aplicação
 
-Após o deploy:
+Após deploy no Coolify:
 
-1. **Configurar DNS**: Apontar domínio para IP do Coolify
-2. **Testar SSL**: `https://meuponto.seudominio.com`
-3. **Criar usuário admin**: `bun run init:production`
-4. **Configurar backups**: Schedule automático
-5. **Monitorar logs**: Primeiras 24h
-6. **Teste de carga**: Verificar performance
-7. **Documentar credenciais**: Em local seguro (1Password/Bitwarden)
-
----
-
-## 💡 Dicas
-
-### Performance
-
-- Use CDN para assets estáticos (Cloudflare)
-- Implemente cache (Redis) se necessário
-- Configure compressão gzip/brotli (já ativado no Caddy)
-- Otimize imagens do frontend
-
-### Custos
-
-- Monitore uso de recursos no Coolify
-- Configure auto-scaling se disponível
-- Use volume storage com economia
-
-### Manutenção
-
-- Atualize dependências regularmente
-- Teste updates em staging antes de produção
-- Mantenha backups testados e acessíveis
-- Documente mudanças no CHANGELOG.md
-
----
+- **Frontend**: `https://seu-dominio.com/`
+- **API**: `https://seu-dominio.com/api/`
+- **Health**: `https://seu-dominio.com/api/health`
+- **Admin**: `https://seu-dominio.com/admin`
+- **Login**: `https://seu-dominio.com/login`
 
 ## 📞 Suporte
 
-- **Documentação Coolify**: https://coolify.io/docs
-- **Issues do Projeto**: GitHub Issues
-- **Community**: Discord do Coolify
-
----
-
-**Deploy confiável em produção! 🚀**
+Em caso de problemas:
+1. Verificar logs no Coolify
+2. Testar health check endpoint
+3. Validar variáveis de ambiente
+4. Confirmar conectividade PostgreSQL

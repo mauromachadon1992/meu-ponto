@@ -23,7 +23,7 @@ const app = new Elysia()
   // Servir arquivos estáticos do Angular em produção
   .use(
     staticPlugin({
-      assets: isProduction ? path.join(process.cwd(), 'public') : path.join(process.cwd(), 'dist/meu-ponto/browser'),
+      assets: path.join(process.cwd(), 'dist/meu-ponto/browser'),
       prefix: '/',
       alwaysStatic: true,
       noCache: !isProduction,
