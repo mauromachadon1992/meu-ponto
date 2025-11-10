@@ -21,7 +21,7 @@ export interface UserProfile {
 })
 export class PerfilService {
   private http = inject(HttpClient);
-  private apiUrl = `${environment.apiUrl}/users`;
+private apiUrl = environment.apiUrl + '/users';
 
   async obterPerfil(userId: string): Promise<UserProfile> {
     return firstValueFrom(this.http.get<UserProfile>(`${this.apiUrl}/${userId}`));
