@@ -157,7 +157,7 @@ import { AuthService } from '../../core/services/auth.service';
                   </div>
                   <hlm-menu-separator />
                   
-                  <button hlmMenuItem>
+                  <button hlmMenuItem (click)="openProfile()">
                     <ng-icon hlm name="lucideUser" size="sm" class="mr-2" />
                     <span>Perfil</span>
                   </button>
@@ -369,6 +369,10 @@ export class HeaderComponent {
     toast.info('Trocar PIN', {
       description: 'Funcionalidade em desenvolvimento',
     });
+  }
+
+  openProfile(): void {
+    this.router.navigate(['/perfil']);
   }
 
   logout(): void {

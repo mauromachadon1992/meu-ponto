@@ -4,6 +4,13 @@ import { adminGuard } from './core/guards/admin.guard';
 
 export const routes: Routes = [
   {
+    path: 'perfil',
+    loadComponent: () =>
+      import('./features/profile/profile.component').then((m) => m.PerfilComponent),
+    canActivate: [authGuard],
+  },
+
+  {
     path: '',
     redirectTo: 'registro-ponto',
     pathMatch: 'full',
@@ -12,20 +19,19 @@ export const routes: Routes = [
     path: 'registro-ponto',
     loadComponent: () =>
       import('./features/registro-ponto/registro-ponto.component').then(
-        (m) => m.RegistroPontoComponent
+        (m) => m.RegistroPontoComponent,
       ),
   },
   {
     path: 'login',
-    loadComponent: () =>
-      import('./features/auth/login.component').then((m) => m.LoginComponent),
+    loadComponent: () => import('./features/auth/login.component').then((m) => m.LoginComponent),
     canActivate: [noAuthGuard],
   },
   {
     path: 'fechamento-ponto',
     loadComponent: () =>
       import('./features/fechamento-ponto/fechamento-lista.component').then(
-        (m) => m.FechamentoListaComponent
+        (m) => m.FechamentoListaComponent,
       ),
     canActivate: [authGuard],
   },
@@ -33,7 +39,7 @@ export const routes: Routes = [
     path: 'fechamento-ponto/:id',
     loadComponent: () =>
       import('./features/fechamento-ponto/fechamento-detalhes.component').then(
-        (m) => m.FechamentoDetalhesComponent
+        (m) => m.FechamentoDetalhesComponent,
       ),
     canActivate: [authGuard],
   },
@@ -48,9 +54,7 @@ export const routes: Routes = [
       {
         path: 'dashboard',
         loadComponent: () =>
-          import('./features/admin/dashboard.component').then(
-            (m) => m.AdminDashboardComponent
-          ),
+          import('./features/admin/dashboard.component').then((m) => m.AdminDashboardComponent),
         canActivate: [authGuard, adminGuard],
       },
     ],
@@ -59,16 +63,14 @@ export const routes: Routes = [
     path: 'configuracoes',
     loadComponent: () =>
       import('./features/configuracoes/configuracoes.component').then(
-        (m) => m.ConfiguracoesComponent
+        (m) => m.ConfiguracoesComponent,
       ),
     canActivate: [authGuard, adminGuard],
   },
   {
     path: 'cadastro-usuario',
     loadComponent: () =>
-      import('./features/admin/cadastro-usuario.component').then(
-        (m) => m.CadastroUsuarioComponent
-      ),
+      import('./features/admin/cadastro-usuario.component').then((m) => m.CadastroUsuarioComponent),
     canActivate: [authGuard, adminGuard],
   },
   {

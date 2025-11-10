@@ -15,7 +15,10 @@ console.log('🔧 Configurando servidor...');
 console.log('📍 CWD:', process.cwd());
 console.log('🌐 PORT:', PORT);
 console.log('🏭 ENV:', process.env.NODE_ENV);
-console.log('🗄️  DATABASE_URL:', process.env.DATABASE_URL ? '✅ Configurada' : '❌ Não configurada');
+console.log(
+  '🗄️  DATABASE_URL:',
+  process.env.DATABASE_URL ? '✅ Configurada' : '❌ Não configurada',
+);
 
 const publicPath = path.join(process.cwd(), 'dist/meu-ponto/browser');
 const indexHtmlPath = path.join(publicPath, 'index.html');
@@ -28,19 +31,21 @@ const app = new Elysia({ name: 'MeuPonto.API' })
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-    })
+    }),
   )
-  
+
   // Middleware para tratar X-Forwarded-* headers do proxy
   .onRequest(({ request }) => {
     const forwardedProto = request.headers.get('x-forwarded-proto');
     const forwardedHost = request.headers.get('x-forwarded-host');
-    
+
     if (isProduction && forwardedProto && forwardedHost) {
-      console.log(`🔄 Proxy request: ${forwardedProto}://${forwardedHost}${new URL(request.url).pathname}`);
+      console.log(
+        `🔄 Proxy request: ${forwardedProto}://${forwardedHost}${new URL(request.url).pathname}`,
+      );
     }
   })
-  
+
   // Health check
   .get('/api/health', () => ({
     status: 'ok',
@@ -48,11 +53,11 @@ const app = new Elysia({ name: 'MeuPonto.API' })
     environment: process.env.NODE_ENV || 'development',
     version: process.env.npm_package_version || '1.0.0',
   }))
-  
+
   // Use controllers
   .use(configuracoesController)
   .use(authController)
-  
+
   // === REGISTROS DE PONTO ===
   .group('/api/registros', (app) =>
     app
@@ -62,7 +67,7 @@ const app = new Elysia({ name: 'MeuPonto.API' })
         hoje.setHours(0, 0, 0, 0);
         const amanha = new Date(hoje);
         amanha.setDate(amanha.getDate() + 1);
-        
+
         const registros = await prisma.registroPonto.findMany({
           where: {
             userId,
@@ -85,24 +90,39 @@ const app = new Elysia({ name: 'MeuPonto.API' })
             },
           },
         });
-        
+
         return registros;
       })
       .post('/', async ({ body }: any) => {
-        const { userId, data, horario, tipoHorario, fotoBase64, localizacao, tipo, entrada, saidaAlmoco, retornoAlmoco, saida, observacao, status, periodoId } = body;
-        
+        const {
+          userId,
+          data,
+          horario,
+          tipoHorario,
+          fotoBase64,
+          localizacao,
+          tipo,
+          entrada,
+          saidaAlmoco,
+          retornoAlmoco,
+          saida,
+          observacao,
+          status,
+          periodoId,
+        } = body;
+
         // ===== CRIAR PERÍODO AUTOMATICAMENTE SE NÃO EXISTIR =====
         let periodoIdFinal = periodoId;
-        
+
         if (!periodoIdFinal) {
           const dataRegistro = new Date(data);
           const mesAtual = dataRegistro.getMonth();
           const anoAtual = dataRegistro.getFullYear();
-          
+
           // Calcular data de início e fim do mês
           const dataInicio = new Date(anoAtual, mesAtual, 1);
           const dataFim = new Date(anoAtual, mesAtual + 1, 0, 23, 59, 59);
-          
+
           // Verificar se já existe um período para este mês/usuário
           const periodoExistente = await prisma.periodoFechamento.findFirst({
             where: {
@@ -113,7 +133,7 @@ const app = new Elysia({ name: 'MeuPonto.API' })
               },
             },
           });
-          
+
           if (periodoExistente) {
             periodoIdFinal = periodoExistente.id;
             console.log(`✅ Período existente encontrado: ${periodoExistente.id}`);
@@ -131,13 +151,15 @@ const app = new Elysia({ name: 'MeuPonto.API' })
                 cargaHorariaMensal: 176,
               },
             });
-            
+
             periodoIdFinal = novoPeriodo.id;
-            console.log(`✅ Novo período criado automaticamente: ${novoPeriodo.id} (${dataInicio.toLocaleDateString()} - ${dataFim.toLocaleDateString()})`);
+            console.log(
+              `✅ Novo período criado automaticamente: ${novoPeriodo.id} (${dataInicio.toLocaleDateString()} - ${dataFim.toLocaleDateString()})`,
+            );
           }
         }
         // ===== FIM DA CRIAÇÃO AUTOMÁTICA DE PERÍODO =====
-        
+
         const registro = await prisma.registroPonto.create({
           data: {
             userId,
@@ -166,13 +188,13 @@ const app = new Elysia({ name: 'MeuPonto.API' })
             },
           },
         });
-        
+
         return registro;
       })
       .patch('/:id', async ({ params, body }: any) => {
         const { id } = params;
         const updateData: any = {};
-        
+
         if (body.entrada !== undefined) updateData.entrada = body.entrada || null;
         if (body.saidaAlmoco !== undefined) updateData.saidaAlmoco = body.saidaAlmoco || null;
         if (body.retornoAlmoco !== undefined) updateData.retornoAlmoco = body.retornoAlmoco || null;
@@ -180,12 +202,12 @@ const app = new Elysia({ name: 'MeuPonto.API' })
         if (body.observacao !== undefined) updateData.observacao = body.observacao || null;
         if (body.tipo !== undefined) updateData.tipo = body.tipo;
         if (body.status !== undefined) updateData.status = body.status;
-        
+
         const registro = await prisma.registroPonto.update({
           where: { id },
           data: updateData,
         });
-        
+
         return registro;
       })
       .delete('/:id', async ({ params }: any) => {
@@ -194,9 +216,9 @@ const app = new Elysia({ name: 'MeuPonto.API' })
           where: { id },
         });
         return { success: true };
-      })
+      }),
   )
-  
+
   // === USUÁRIOS ===
   .group('/api/users', (app) =>
     app
@@ -223,26 +245,26 @@ const app = new Elysia({ name: 'MeuPonto.API' })
         const pinExistente = await prisma.user.findUnique({
           where: { pin: body.pin },
         });
-        
+
         if (pinExistente) {
           return {
             success: false,
             error: 'PIN já cadastrado. Escolha outro PIN.',
           };
         }
-        
+
         // Verificar email duplicado
         const emailExistente = await prisma.user.findUnique({
           where: { email: body.email },
         });
-        
+
         if (emailExistente) {
           return {
             success: false,
             error: 'E-mail já cadastrado.',
           };
         }
-        
+
         // Criar usuário
         const novoUsuario = await prisma.user.create({
           data: {
@@ -258,7 +280,7 @@ const app = new Elysia({ name: 'MeuPonto.API' })
             isAdmin: body.isAdmin || false,
           },
         });
-        
+
         return {
           success: true,
           user: novoUsuario,
@@ -266,7 +288,7 @@ const app = new Elysia({ name: 'MeuPonto.API' })
       })
       .get('/:id', async ({ params }: any) => {
         const { id } = params;
-        
+
         const user = await prisma.user.findUnique({
           where: { id },
           select: {
@@ -282,21 +304,72 @@ const app = new Elysia({ name: 'MeuPonto.API' })
             isAdmin: true,
           },
         });
-        
+
         if (!user) {
           throw new Error('Usuário não encontrado');
         }
-        
+
         return user;
-      })
+      }),
   )
-  
+
+  .patch('/:id', async ({ params, body }: any) => {
+    const { id } = params;
+
+    const updateData: any = {};
+
+    if (body.nome !== undefined) updateData.nome = body.nome;
+    if (body.email !== undefined) {
+      // Verificar se email já existe em outro usuário
+      const emailExistente = await prisma.user.findFirst({
+        where: {
+          email: body.email,
+          NOT: { id },
+        },
+      });
+
+      if (emailExistente) {
+        return {
+          success: false,
+          error: 'E-mail já cadastrado por outro usuário.',
+        };
+      }
+      updateData.email = body.email;
+    }
+    if (body.avatar !== undefined) updateData.avatar = body.avatar;
+    if (body.cargo !== undefined) updateData.cargo = body.cargo;
+    if (body.departamento !== undefined) updateData.departamento = body.departamento;
+    if (body.cargaHorariaDiaria !== undefined)
+      updateData.cargaHorariaDiaria = body.cargaHorariaDiaria;
+    if (body.salarioMensal !== undefined) updateData.salarioMensal = body.salarioMensal;
+    if (body.chavePix !== undefined) updateData.chavePix = body.chavePix || null;
+
+    const usuario = await prisma.user.update({
+      where: { id },
+      data: updateData,
+      select: {
+        id: true,
+        nome: true,
+        email: true,
+        avatar: true,
+        cargo: true,
+        departamento: true,
+        cargaHorariaDiaria: true,
+        salarioMensal: true,
+        chavePix: true,
+        isAdmin: true,
+      },
+    });
+
+    return usuario;
+  })
+
   // === PERÍODOS DE FECHAMENTO ===
   .group('/api/periodos', (app) =>
     app
       .get('/', async ({ query }: any) => {
         const { userId } = query || {};
-        
+
         const periodos = await prisma.periodoFechamento.findMany({
           where: userId ? { userId } : {},
           include: {
@@ -317,29 +390,29 @@ const app = new Elysia({ name: 'MeuPonto.API' })
             dataInicio: 'desc',
           },
         });
-        
+
         return periodos;
       })
       .post('/', async ({ body }: any) => {
         const { userId, mes, ano } = body;
-        
+
         // Validar entrada
         if (!userId || !mes || !ano) {
           throw new Error('userId, mes e ano são obrigatórios');
         }
-        
+
         if (mes < 1 || mes > 12) {
           throw new Error('Mês inválido (1-12)');
         }
-        
+
         if (ano < 2020 || ano > 2100) {
           throw new Error('Ano inválido');
         }
-        
+
         // Calcular data de início e fim do mês
         const dataInicio = new Date(ano, mes - 1, 1);
         const dataFim = new Date(ano, mes, 0, 23, 59, 59);
-        
+
         // Verificar se já existe um período para este mês/usuário
         const periodoExistente = await prisma.periodoFechamento.findFirst({
           where: {
@@ -350,11 +423,11 @@ const app = new Elysia({ name: 'MeuPonto.API' })
             },
           },
         });
-        
+
         if (periodoExistente) {
           throw new Error('Já existe um período de fechamento para este mês e usuário');
         }
-        
+
         // Criar novo período
         const novoPeriodo = await prisma.periodoFechamento.create({
           data: {
@@ -382,14 +455,16 @@ const app = new Elysia({ name: 'MeuPonto.API' })
             },
           },
         });
-        
-        console.log(`✅ Período criado manualmente por admin: ${novoPeriodo.id} (${dataInicio.toLocaleDateString()} - ${dataFim.toLocaleDateString()})`);
-        
+
+        console.log(
+          `✅ Período criado manualmente por admin: ${novoPeriodo.id} (${dataInicio.toLocaleDateString()} - ${dataFim.toLocaleDateString()})`,
+        );
+
         return novoPeriodo;
       })
       .get('/:id', async ({ params }: any) => {
         const { id } = params;
-        
+
         const periodo = await prisma.periodoFechamento.findUnique({
           where: { id },
           include: {
@@ -407,22 +482,19 @@ const app = new Elysia({ name: 'MeuPonto.API' })
             },
           },
         });
-        
+
         if (!periodo) {
           throw new Error('Período não encontrado');
         }
-        
+
         return periodo;
       })
       .get('/:id/registros', async ({ params }: any) => {
         const { id } = params;
-        
+
         const registros = await prisma.registroPonto.findMany({
           where: { periodoId: id },
-          orderBy: [
-            { data: 'asc' },
-            { createdAt: 'asc' },
-          ],
+          orderBy: [{ data: 'asc' }, { createdAt: 'asc' }],
           include: {
             user: {
               select: {
@@ -434,12 +506,12 @@ const app = new Elysia({ name: 'MeuPonto.API' })
             },
           },
         });
-        
+
         return registros;
       })
       .get('/:id/resumo', async ({ params }: any) => {
         const { id } = params;
-        
+
         const periodo = await prisma.periodoFechamento.findUnique({
           where: { id },
           include: {
@@ -447,60 +519,62 @@ const app = new Elysia({ name: 'MeuPonto.API' })
             user: true,
           },
         });
-        
+
         if (!periodo) {
           throw new Error('Período não encontrado');
         }
-        
+
         // Cálculos básicos de resumo
         const registrosPorDia = new Map<string, any[]>();
-        periodo.registros.forEach(registro => {
+        periodo.registros.forEach((registro) => {
           const dataKey = new Date(registro.data).toISOString().split('T')[0];
           if (!registrosPorDia.has(dataKey)) {
             registrosPorDia.set(dataKey, []);
           }
           registrosPorDia.get(dataKey)!.push(registro);
         });
-        
+
         let totalHorasTrabalhadas = 0;
         let diasTrabalhados = 0;
-        
+
         registrosPorDia.forEach((registrosDia) => {
           const registrosOrdenados = registrosDia
-            .filter(r => r.horario && r.tipo === 'NORMAL')
+            .filter((r) => r.horario && r.tipo === 'NORMAL')
             .sort((a, b) => (a.horario || '').localeCompare(b.horario || ''));
-          
+
           if (registrosOrdenados.length >= 2) {
             const primeiro = registrosOrdenados[0].horario!;
             const ultimo = registrosOrdenados[registrosOrdenados.length - 1].horario!;
-            
+
             const [h1, m1] = primeiro.split(':').map(Number);
             const [h2, m2] = ultimo.split(':').map(Number);
-            
-            let totalMinutos = (h2 * 60 + m2) - (h1 * 60 + m1);
-            
+
+            let totalMinutos = h2 * 60 + m2 - (h1 * 60 + m1);
+
             // Descontar intervalo de almoço se houver
-            const saidaAlmoco = registrosOrdenados.find(r => r.tipoHorario === 'SAIDA_ALMOCO');
-            const retornoAlmoco = registrosOrdenados.find(r => r.tipoHorario === 'RETORNO_ALMOCO');
-            
+            const saidaAlmoco = registrosOrdenados.find((r) => r.tipoHorario === 'SAIDA_ALMOCO');
+            const retornoAlmoco = registrosOrdenados.find(
+              (r) => r.tipoHorario === 'RETORNO_ALMOCO',
+            );
+
             if (saidaAlmoco?.horario && retornoAlmoco?.horario) {
               const [h3, m3] = saidaAlmoco.horario.split(':').map(Number);
               const [h4, m4] = retornoAlmoco.horario.split(':').map(Number);
-              const intervalo = (h4 * 60 + m4) - (h3 * 60 + m3);
+              const intervalo = h4 * 60 + m4 - (h3 * 60 + m3);
               if (intervalo > 0) totalMinutos -= intervalo;
             }
-            
+
             const horasDia = totalMinutos / 60;
             totalHorasTrabalhadas += horasDia;
             diasTrabalhados++;
           }
         });
-        
+
         const cargaHorariaDiaria = periodo.user?.cargaHorariaDiaria || 8;
         const horasEsperadas = diasTrabalhados * cargaHorariaDiaria;
         const totalHorasExtras = Math.max(0, totalHorasTrabalhadas - horasEsperadas);
         const totalHorasDevidas = Math.max(0, horasEsperadas - totalHorasTrabalhadas);
-        
+
         // Atualizar período
         await prisma.periodoFechamento.update({
           where: { id },
@@ -510,7 +584,7 @@ const app = new Elysia({ name: 'MeuPonto.API' })
             totalHorasDevidas,
           },
         });
-        
+
         return {
           diasTrabalhados,
           diasFaltados: 0,
@@ -520,22 +594,22 @@ const app = new Elysia({ name: 'MeuPonto.API' })
           totalHorasExtras,
           totalHorasDevidas,
         };
-      })
+      }),
   )
-  
+
   // Servir arquivos estáticos e SPA (catch-all deve vir por último)
   .get('*', ({ path: reqPath, request }) => {
     // Ignorar rotas API
     if (reqPath.startsWith('/api/')) {
       return new Response('Not found', { status: 404 });
     }
-    
+
     // Remover query string e hash
     const cleanPath = reqPath.split('?')[0].split('#')[0];
-    
+
     // Tentar servir arquivo estático
     const filePath = path.join(publicPath, cleanPath);
-    
+
     // Verificar se arquivo existe
     if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
       const file = Bun.file(filePath);
@@ -547,7 +621,7 @@ const app = new Elysia({ name: 'MeuPonto.API' })
         },
       });
     }
-    
+
     // Fallback para index.html (SPA routing)
     const indexFile = Bun.file(indexHtmlPath);
     return new Response(request.method === 'HEAD' ? null : indexFile, {
@@ -557,7 +631,7 @@ const app = new Elysia({ name: 'MeuPonto.API' })
       },
     });
   })
-  
+
   .listen({
     port: PORT,
     hostname: '0.0.0.0', // Essencial para Docker/Coolify

@@ -19,15 +19,14 @@ const isProduction = process.env.NODE_ENV === 'production';
 const PORT = process.env.PORT || process.env.API_PORT || 3000;
 
 // Determinar caminho do frontend
-const publicPath = isProduction 
+const publicPath = isProduction
   ? path.join(process.cwd(), 'public')
   : path.join(process.cwd(), 'dist/meu-ponto/browser');
 
 // Verificar se o frontend existe
 const frontendExists = fs.existsSync(publicPath);
 
-const app = new Elysia()
-  .use(cors());
+const app = new Elysia().use(cors());
 
 // Servir arquivos estáticos do Angular (somente se existir)
 if (frontendExists) {
@@ -36,12 +35,12 @@ if (frontendExists) {
       assets: publicPath,
       prefix: '/',
       alwaysStatic: false,
-    })
+    }),
   );
 }
 
 app
-  
+
   // Health check
   .get('/api/health', () => ({
     status: 'ok',
@@ -49,7 +48,7 @@ app
     environment: process.env.NODE_ENV || 'development',
     version: '1.0.0',
   }))
-  
+
   // Configurações Routes
   .group('/api/configuracoes', (app) =>
     app
@@ -64,10 +63,10 @@ app
         },
         {
           body: t.Any(), // Aceita qualquer objeto
-        }
-      )
+        },
+      ),
   )
-  
+
   // Auth Routes
   .group('/api/auth', (app) =>
     app
@@ -75,7 +74,7 @@ app
         '/login-pin',
         async ({ body }) => {
           const { pin } = body;
-          
+
           const user = await prisma.user.findUnique({
             where: { pin },
             select: {
@@ -107,39 +106,36 @@ app
           body: t.Object({
             pin: t.String({ minLength: 4, maxLength: 4 }),
           }),
-        }
+        },
       )
-      .post(
-        '/login-face',
-        async ({ body }) => {
-          // Simulação - em produção, aqui você processaria dados biométricos
-          const user = await prisma.user.findFirst({
-            select: {
-              id: true,
-              nome: true,
-              email: true,
-              avatar: true,
-              cargo: true,
-              departamento: true,
-            },
-          });
+      .post('/login-face', async ({ body }) => {
+        // Simulação - em produção, aqui você processaria dados biométricos
+        const user = await prisma.user.findFirst({
+          select: {
+            id: true,
+            nome: true,
+            email: true,
+            avatar: true,
+            cargo: true,
+            departamento: true,
+          },
+        });
 
-          if (!user) {
-            return {
-              success: false,
-              error: 'Nenhum usuário encontrado',
-            };
-          }
-
+        if (!user) {
           return {
-            success: true,
-            user,
-            confidence: 0.95,
+            success: false,
+            error: 'Nenhum usuário encontrado',
           };
         }
-      )
+
+        return {
+          success: true,
+          user,
+          confidence: 0.95,
+        };
+      }),
   )
-  
+
   // Users Routes
   .group('/api/users', (app) =>
     app
@@ -236,7 +232,7 @@ app
             chavePix: t.Optional(t.String()),
             isAdmin: t.Optional(t.Boolean()),
           }),
-        }
+        },
       )
       .get(
         '/:id',
@@ -267,8 +263,62 @@ app
           params: t.Object({
             id: t.String(),
           }),
-        }
+        },
       )
+      .patch('/:id', async ({ params, body }: any) => {
+        console.log('PATCH /api/users/:id called with:', { params, body });
+        const { id } = params;
+
+        const updateData: any = {};
+
+        if (body.nome !== undefined) updateData.nome = body.nome;
+        if (body.email !== undefined) {
+          console.log('Checking if email exists for another user:', body.email);
+          const emailExistente = await prisma.user.findFirst({
+            where: {
+              email: body.email,
+              NOT: { id },
+            },
+          });
+
+          if (emailExistente) {
+            console.log('Email already exists for another user:', body.email);
+            return {
+              success: false,
+              error: 'E-mail já cadastrado por outro usuário.',
+            };
+          }
+          updateData.email = body.email;
+        }
+        if (body.avatar !== undefined) updateData.avatar = body.avatar;
+        if (body.cargo !== undefined) updateData.cargo = body.cargo;
+        if (body.departamento !== undefined) updateData.departamento = body.departamento;
+        if (body.cargaHorariaDiaria !== undefined)
+          updateData.cargaHorariaDiaria = body.cargaHorariaDiaria;
+        if (body.salarioMensal !== undefined) updateData.salarioMensal = body.salarioMensal;
+        if (body.chavePix !== undefined) updateData.chavePix = body.chavePix || null;
+
+        console.log('Updating user with data:', updateData);
+        const usuario = await prisma.user.update({
+          where: { id },
+          data: updateData,
+          select: {
+            id: true,
+            nome: true,
+            email: true,
+            avatar: true,
+            cargo: true,
+            departamento: true,
+            cargaHorariaDiaria: true,
+            salarioMensal: true,
+            chavePix: true,
+            isAdmin: true,
+          },
+        });
+
+        console.log('User updated successfully:', usuario);
+        return usuario;
+      }),
   )
 
   // Periodos Routes
@@ -276,7 +326,7 @@ app
     app
       .get('/', async ({ query }) => {
         const { userId } = query;
-        
+
         const periodos = await prisma.periodoFechamento.findMany({
           where: userId ? { userId } : {},
           include: {
@@ -304,24 +354,24 @@ app
         '/',
         async ({ body }) => {
           const { userId, mes, ano } = body;
-          
+
           // Validar entrada
           if (!userId || !mes || !ano) {
             throw new Error('userId, mes e ano são obrigatórios');
           }
-          
+
           if (mes < 1 || mes > 12) {
             throw new Error('Mês inválido (1-12)');
           }
-          
+
           if (ano < 2020 || ano > 2100) {
             throw new Error('Ano inválido');
           }
-          
+
           // Calcular data de início e fim do mês
           const dataInicio = new Date(ano, mes - 1, 1);
           const dataFim = new Date(ano, mes, 0, 23, 59, 59);
-          
+
           // Verificar se já existe um período para este mês/usuário
           const periodoExistente = await prisma.periodoFechamento.findFirst({
             where: {
@@ -332,11 +382,11 @@ app
               },
             },
           });
-          
+
           if (periodoExistente) {
             throw new Error('Já existe um período de fechamento para este mês e usuário');
           }
-          
+
           // Criar novo período
           const novoPeriodo = await prisma.periodoFechamento.create({
             data: {
@@ -364,9 +414,11 @@ app
               },
             },
           });
-          
-          console.log(`✅ Período criado manualmente por admin: ${novoPeriodo.id} (${dataInicio.toLocaleDateString()} - ${dataFim.toLocaleDateString()})`);
-          
+
+          console.log(
+            `✅ Período criado manualmente por admin: ${novoPeriodo.id} (${dataInicio.toLocaleDateString()} - ${dataFim.toLocaleDateString()})`,
+          );
+
           return novoPeriodo;
         },
         {
@@ -375,7 +427,7 @@ app
             mes: t.Number({ minimum: 1, maximum: 12 }),
             ano: t.Number({ minimum: 2020, maximum: 2100 }),
           }),
-        }
+        },
       )
       .get(
         '/:id',
@@ -408,7 +460,7 @@ app
           params: t.Object({
             id: t.String(),
           }),
-        }
+        },
       )
       .get(
         '/:id/registros',
@@ -426,7 +478,7 @@ app
           params: t.Object({
             id: t.String(),
           }),
-        }
+        },
       )
       .get(
         '/:id/resumo',
@@ -460,7 +512,7 @@ app
 
           // Agrupar registros por dia
           const registrosPorDia = new Map<string, any[]>();
-          periodo.registros.forEach(registro => {
+          periodo.registros.forEach((registro) => {
             const dataKey = new Date(registro.data).toISOString().split('T')[0];
             if (!registrosPorDia.has(dataKey)) {
               registrosPorDia.set(dataKey, []);
@@ -475,63 +527,69 @@ app
           let diasTrabalhados = 0;
           let diasFeriados = 0;
           let diasComHorasExtrasEmDomingo = 0;
-          
+
           registrosPorDia.forEach((registrosDia, dataKey) => {
             // Verificar tipo de dia
-            const tiposDia = registrosDia.map(r => r.tipo);
+            const tiposDia = registrosDia.map((r) => r.tipo);
             const dataDia = new Date(dataKey);
-            
+
             if (tiposDia.includes('FERIADO')) {
               diasFeriados++;
               return; // Não conta horas em feriados
             }
-            
+
             if (tiposDia.includes('FERIAS')) {
               return; // Não conta horas em férias
             }
-            
+
             if (tiposDia.includes('ATESTADO')) {
               return; // Não conta horas em atestados
             }
-            
+
             // Filtrar apenas registros normais com horário
             const registrosOrdenados = registrosDia
-              .filter(r => r.horario && r.tipo === 'NORMAL')
+              .filter((r) => r.horario && r.tipo === 'NORMAL')
               .sort((a, b) => (a.horario || '').localeCompare(b.horario || ''));
-            
+
             if (registrosOrdenados.length >= 2) {
               // Validar ordem dos registros
               let ordemValida = true;
               for (let i = 0; i < registrosOrdenados.length - 1; i++) {
                 if (registrosOrdenados[i].horario! >= registrosOrdenados[i + 1].horario!) {
                   ordemValida = false;
-                  console.warn(`⚠️ Registros fora de ordem detectados no dia ${new Date(registrosOrdenados[i].data).toLocaleDateString()}`);
+                  console.warn(
+                    `⚠️ Registros fora de ordem detectados no dia ${new Date(registrosOrdenados[i].data).toLocaleDateString()}`,
+                  );
                 }
               }
-              
+
               const primeiro = registrosOrdenados[0].horario!;
               const ultimo = registrosOrdenados[registrosOrdenados.length - 1].horario!;
-              
+
               const [h1, m1] = primeiro.split(':').map(Number);
               const [h2, m2] = ultimo.split(':').map(Number);
-              
-              let totalMinutos = (h2 * 60 + m2) - (h1 * 60 + m1);
-              
+
+              let totalMinutos = h2 * 60 + m2 - (h1 * 60 + m1);
+
               // Validar se o horário de saída é posterior à entrada
               if (totalMinutos < 0) {
-                console.warn(`⚠️ Horário de saída anterior à entrada detectado no dia ${new Date(registrosOrdenados[0].data).toLocaleDateString()}`);
+                console.warn(
+                  `⚠️ Horário de saída anterior à entrada detectado no dia ${new Date(registrosOrdenados[0].data).toLocaleDateString()}`,
+                );
                 totalMinutos = 0;
               }
-              
+
               // Descontar intervalo de almoço
-              const saidaAlmoco = registrosOrdenados.find(r => r.tipoHorario === 'SAIDA_ALMOCO');
-              const retornoAlmoco = registrosOrdenados.find(r => r.tipoHorario === 'RETORNO_ALMOCO');
-              
+              const saidaAlmoco = registrosOrdenados.find((r) => r.tipoHorario === 'SAIDA_ALMOCO');
+              const retornoAlmoco = registrosOrdenados.find(
+                (r) => r.tipoHorario === 'RETORNO_ALMOCO',
+              );
+
               if (saidaAlmoco?.horario && retornoAlmoco?.horario) {
                 const [h3, m3] = saidaAlmoco.horario.split(':').map(Number);
                 const [h4, m4] = retornoAlmoco.horario.split(':').map(Number);
-                const intervalo = (h4 * 60 + m4) - (h3 * 60 + m3);
-                
+                const intervalo = h4 * 60 + m4 - (h3 * 60 + m3);
+
                 // Validar se o retorno é posterior à saída
                 if (intervalo > 0) {
                   totalMinutos -= intervalo;
@@ -539,20 +597,20 @@ app
                   console.warn(`⚠️ Horário de retorno do almoço anterior à saída detectado`);
                 }
               }
-              
+
               const horasDia = totalMinutos / 60;
               totalHorasTrabalhadas += horasDia;
               diasTrabalhados++;
-              
+
               // Calcular horas noturnas (22h-5h)
               const horasNoturnasDia = calcularHorasNoturnas(primeiro, ultimo);
               totalHorasNoturnas += horasNoturnasDia;
-              
+
               // Calcular atraso (assumindo entrada esperada às 08:00)
               const horarioEsperadoEntrada = '08:00';
               const minutosAtraso = calcularMinutosAtraso(horarioEsperadoEntrada, primeiro);
               totalMinutosAtraso += minutosAtraso;
-              
+
               // Verificar se trabalhou em domingo
               if (ehDomingo(dataDia)) {
                 diasComHorasExtrasEmDomingo++;
@@ -563,44 +621,45 @@ app
           // Calcular dias esperados (dias úteis no período)
           const diasUteisEsperados = contarDiasUteis(periodo.dataInicio, periodo.dataFim);
           const diasFaltados = Math.max(0, diasUteisEsperados - diasTrabalhados - diasFeriados);
-          
+
           const cargaHorariaDiaria = periodo.user?.cargaHorariaDiaria || 8;
           const horasEsperadas = diasTrabalhados * cargaHorariaDiaria;
           const totalHorasExtras = Math.max(0, totalHorasTrabalhadas - horasEsperadas);
           const totalHorasDevidas = Math.max(0, horasEsperadas - totalHorasTrabalhadas);
-          
+
           // Obter configurações
           const config = getConfiguracoes();
-          
+
           // Calcular percentual de hora extra (considerando domingos)
-          const percentualHE = diasComHorasExtrasEmDomingo > 0 
-            ? getPercentualHoraExtra(true) 
-            : getPercentualHoraExtra(false);
-          
+          const percentualHE =
+            diasComHorasExtrasEmDomingo > 0
+              ? getPercentualHoraExtra(true)
+              : getPercentualHoraExtra(false);
+
           // Calcular DSR sobre horas extras
           const horasDSR = calcularDSR(totalHorasExtras);
-          
+
           // Calcular valores financeiros
           const salarioMensal = periodo.user?.salarioMensal || 0;
           const valorHora = salarioMensal / (config.diasUteisPorMes * cargaHorariaDiaria);
-          
+
           // Valor das horas extras com percentual configurado
           const valorHorasExtras = totalHorasExtras * valorHora * (1 + percentualHE / 100);
-          
+
           // Valor das horas noturnas (adicional sobre a hora normal)
-          const valorAdicionalNoturno = config.calcularAdicionalNoturno 
+          const valorAdicionalNoturno = config.calcularAdicionalNoturno
             ? totalHorasNoturnas * valorHora * (config.percentualAdicionalNoturno / 100)
             : 0;
-          
+
           // Valor do DSR
           const valorDSR = config.calcularDSR ? horasDSR * valorHora * (1 + percentualHE / 100) : 0;
-          
+
           // Descontos
           let descontoAtraso = 0;
           if (config.aplicarDescontoPorAtraso && totalMinutosAtraso > 0) {
             descontoAtraso = (totalMinutosAtraso / 60) * valorHora;
           }
-          
+
           let descontoFaltas = 0;
           if (config.aplicarDescontoPorFalta && diasFaltados > 0) {
             descontoFaltas = diasFaltados * (salarioMensal / config.diasUteisPorMes);
@@ -626,13 +685,13 @@ app
             totalHorasTrabalhadas,
             totalHorasExtras,
             totalHorasDevidas,
-            
+
             // Dados avançados
             totalHorasNoturnas,
             totalMinutosAtraso,
             horasDSR,
             percentualHorasExtrasAplicado: percentualHE,
-            
+
             // Valores financeiros
             valorHora: Math.round(valorHora * 100) / 100,
             valorHorasExtras: Math.round(valorHorasExtras * 100) / 100,
@@ -640,9 +699,10 @@ app
             valorDSR: Math.round(valorDSR * 100) / 100,
             descontoAtraso: Math.round(descontoAtraso * 100) / 100,
             descontoFaltas: Math.round(descontoFaltas * 100) / 100,
-            
+
             // Total líquido
-            totalProventos: Math.round((valorHorasExtras + valorAdicionalNoturno + valorDSR) * 100) / 100,
+            totalProventos:
+              Math.round((valorHorasExtras + valorAdicionalNoturno + valorDSR) * 100) / 100,
             totalDescontos: Math.round((descontoAtraso + descontoFaltas) * 100) / 100,
           };
         },
@@ -650,8 +710,8 @@ app
           params: t.Object({
             id: t.String(),
           }),
-        }
-      )
+        },
+      ),
   )
 
   // Registros Routes
@@ -660,8 +720,23 @@ app
       .post(
         '/',
         async ({ body }) => {
-          const { data, horario, tipoHorario, entrada, saidaAlmoco, retornoAlmoco, saida, observacao, tipo, status, userId, periodoId, fotoBase64, localizacao } = body;
-          
+          const {
+            data,
+            horario,
+            tipoHorario,
+            entrada,
+            saidaAlmoco,
+            retornoAlmoco,
+            saida,
+            observacao,
+            tipo,
+            status,
+            userId,
+            periodoId,
+            fotoBase64,
+            localizacao,
+          } = body;
+
           // Se userId não foi fornecido, pegar o primeiro usuário (fallback para desenvolvimento)
           let userIdFinal = userId;
           if (!userIdFinal) {
@@ -682,19 +757,19 @@ app
           if (localizacao) {
             localizacaoJson = JSON.stringify(localizacao);
           }
-          
+
           // ===== CRIAR PERÍODO AUTOMATICAMENTE SE NÃO EXISTIR =====
           let periodoIdFinal = periodoId;
-          
+
           if (!periodoIdFinal) {
             const dataRegistro = new Date(data);
             const mesAtual = dataRegistro.getMonth();
             const anoAtual = dataRegistro.getFullYear();
-            
+
             // Calcular data de início e fim do mês
             const dataInicio = new Date(anoAtual, mesAtual, 1);
             const dataFim = new Date(anoAtual, mesAtual + 1, 0, 23, 59, 59);
-            
+
             // Verificar se já existe um período para este mês/usuário
             const periodoExistente = await prisma.periodoFechamento.findFirst({
               where: {
@@ -705,7 +780,7 @@ app
                 },
               },
             });
-            
+
             if (periodoExistente) {
               periodoIdFinal = periodoExistente.id;
               console.log(`✅ Período existente encontrado: ${periodoExistente.id}`);
@@ -723,13 +798,15 @@ app
                   cargaHorariaMensal: 176,
                 },
               });
-              
+
               periodoIdFinal = novoPeriodo.id;
-              console.log(`✅ Novo período criado automaticamente: ${novoPeriodo.id} (${dataInicio.toLocaleDateString()} - ${dataFim.toLocaleDateString()})`);
+              console.log(
+                `✅ Novo período criado automaticamente: ${novoPeriodo.id} (${dataInicio.toLocaleDateString()} - ${dataFim.toLocaleDateString()})`,
+              );
             }
           }
           // ===== FIM DA CRIAÇÃO AUTOMÁTICA DE PERÍODO =====
-          
+
           const registro = await prisma.registroPonto.create({
             data: {
               data: new Date(data),
@@ -776,20 +853,22 @@ app
             userId: t.Optional(t.String()),
             periodoId: t.Optional(t.String()),
             fotoBase64: t.Optional(t.String()),
-            localizacao: t.Optional(t.Object({
-              latitude: t.Number(),
-              longitude: t.Number(),
-              precisao: t.Number(),
-            })),
+            localizacao: t.Optional(
+              t.Object({
+                latitude: t.Number(),
+                longitude: t.Number(),
+                precisao: t.Number(),
+              }),
+            ),
           }),
-        }
+        },
       )
       .get(
         '/hoje/:userId',
         async ({ params }) => {
           const hoje = new Date();
           hoje.setHours(0, 0, 0, 0);
-          
+
           const amanha = new Date(hoje);
           amanha.setDate(amanha.getDate() + 1);
 
@@ -822,7 +901,7 @@ app
           params: t.Object({
             userId: t.String(),
           }),
-        }
+        },
       )
       .patch(
         '/:id',
@@ -830,7 +909,8 @@ app
           const updateData: any = {};
           if (body.entrada !== undefined) updateData.entrada = body.entrada || null;
           if (body.saidaAlmoco !== undefined) updateData.saidaAlmoco = body.saidaAlmoco || null;
-          if (body.retornoAlmoco !== undefined) updateData.retornoAlmoco = body.retornoAlmoco || null;
+          if (body.retornoAlmoco !== undefined)
+            updateData.retornoAlmoco = body.retornoAlmoco || null;
           if (body.saida !== undefined) updateData.saida = body.saida || null;
           if (body.observacao !== undefined) updateData.observacao = body.observacao || null;
           if (body.tipo !== undefined) updateData.tipo = body.tipo;
@@ -856,8 +936,8 @@ app
             tipo: t.Optional(t.String()),
             status: t.Optional(t.String()),
           }),
-        }
-      )
+        },
+      ),
   )
 
   // Endpoint para buscar registros por período
@@ -868,10 +948,7 @@ app
         where: {
           periodoId: params.id,
         },
-        orderBy: [
-          { data: 'asc' },
-          { createdAt: 'asc' },
-        ],
+        orderBy: [{ data: 'asc' }, { createdAt: 'asc' }],
         include: {
           user: {
             select: {
@@ -890,61 +967,60 @@ app
       params: t.Object({
         id: t.String(),
       }),
-    }
+    },
   )
 
   .group('/api/registros', (app) =>
-    app
-      .delete(
-        '/:id',
-        async ({ params }) => {
-          await prisma.registroPonto.delete({
-            where: { id: params.id },
-          });
+    app.delete(
+      '/:id',
+      async ({ params }) => {
+        await prisma.registroPonto.delete({
+          where: { id: params.id },
+        });
 
-          return { success: true };
-        },
-        {
-          params: t.Object({
-            id: t.String(),
-          }),
-        }
-      )
+        return { success: true };
+      },
+      {
+        params: t.Object({
+          id: t.String(),
+        }),
+      },
+    ),
   )
-  
+
   // Fallback para Angular SPA (todas as rotas não-API servem index.html)
   .get('*', ({ set, request }) => {
     const url = new URL(request.url);
-    
+
     // Se for rota da API, não fazer fallback
     if (url.pathname.startsWith('/api/')) {
       set.status = 404;
       return { error: 'API endpoint not found' };
     }
-    
+
     // Se frontend não existe, retornar mensagem
     if (!frontendExists) {
       set.status = 503;
-      return { 
-        error: 'Frontend not built', 
+      return {
+        error: 'Frontend not built',
         message: 'Run "bun run build:prod" to build the Angular app',
-        api: 'API is available at /api/*'
+        api: 'API is available at /api/*',
       };
     }
-    
+
     // Servir index.html para rotas do Angular
     const indexPath = path.join(publicPath, 'index.html');
-    
+
     if (fs.existsSync(indexPath)) {
       set.headers['Content-Type'] = 'text/html; charset=utf-8';
       const fileContent = fs.readFileSync(indexPath, 'utf-8');
       return fileContent;
     }
-    
+
     set.status = 404;
     return { error: 'Frontend index.html not found' };
   })
-  
+
   .listen({
     port: PORT,
     hostname: isProduction ? '0.0.0.0' : 'localhost',
