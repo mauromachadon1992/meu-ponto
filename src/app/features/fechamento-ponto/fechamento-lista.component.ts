@@ -18,13 +18,16 @@ import { HlmLabel } from '@spartan-ng/helm/label';
 import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
 import { HlmEmptyImports } from '@spartan-ng/helm/empty';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideCalendar, lucideClock, lucideArrowRight, lucideFilter, lucideX, lucideRefreshCcw } from '@ng-icons/lucide';
+import { lucideCalendar, lucideClock, lucideArrowRight, lucideFilter, lucideX, lucideRefreshCcw, lucidePlus } from '@ng-icons/lucide';
 import { FechamentoPontoService } from '../../core/services/fechamento-ponto.service';
 import { AuthService } from '../../core/services/auth.service';
 import {
   PeriodoFechamento,
   StatusFechamento,
 } from '../../core/models/periodo-fechamento.model';
+import { HlmDialogService } from '@spartan-ng/helm/dialog';
+import { CriarPeriodoDialogComponent } from './criar-periodo-dialog.component';
+import { toast } from 'ngx-sonner';
 
 @Component({
   selector: 'app-fechamento-lista',
@@ -55,15 +58,29 @@ import {
       lucideFilter,
       lucideX,
       lucideRefreshCcw,
+      lucidePlus,
     }),
   ],
   template: `
     <div class="py-8 px-4 max-w-screen-2xl mx-auto">
-      <div class="mb-8">
-        <h1 class="text-3xl font-bold tracking-tight">Fechamento de Ponto</h1>
-        <p class="text-muted-foreground mt-2">
-          Gerencie e visualize os períodos de fechamento
-        </p>
+      <div class="mb-8 flex items-center justify-between">
+        <div>
+          <h1 class="text-3xl font-bold tracking-tight">Fechamento de Ponto</h1>
+          <p class="text-muted-foreground mt-2">
+            Gerencie e visualize os períodos de fechamento
+          </p>
+        </div>
+        
+        @if (authService.user()?.isAdmin) {
+          <button
+            hlmBtn
+            (click)="abrirDialogCriarPeriodo()"
+            class="gap-2"
+          >
+            <ng-icon hlm name="lucidePlus" size="sm" />
+            Criar Período
+          </button>
+        }
       </div>
 
       <!-- Filtros -->
@@ -311,6 +328,7 @@ export class FechamentoListaComponent implements OnInit {
   private readonly service = inject(FechamentoPontoService);
   private readonly router = inject(Router);
   readonly authService = inject(AuthService);
+  private readonly dialogService = inject(HlmDialogService);
 
   readonly periodos = signal<PeriodoFechamento[]>([]);
   readonly usuarios = signal<Array<{ id: string; nome: string }>>([]);
@@ -450,5 +468,16 @@ export class FechamentoListaComponent implements OnInit {
       [StatusFechamento.FECHADO]: 'destructive',
     };
     return variants[status];
+  }
+
+  abrirDialogCriarPeriodo(): void {
+    const dialogRef = this.dialogService.open(CriarPeriodoDialogComponent);
+
+    dialogRef.closed$.subscribe((resultado) => {
+      if (resultado) {
+        // Recarregar lista
+        this.carregarPeriodos();
+      }
+    });
   }
 }

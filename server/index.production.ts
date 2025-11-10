@@ -91,6 +91,53 @@ const app = new Elysia({ name: 'MeuPonto.API' })
       .post('/', async ({ body }: any) => {
         const { userId, data, horario, tipoHorario, fotoBase64, localizacao, tipo, entrada, saidaAlmoco, retornoAlmoco, saida, observacao, status, periodoId } = body;
         
+        // ===== CRIAR PERÍODO AUTOMATICAMENTE SE NÃO EXISTIR =====
+        let periodoIdFinal = periodoId;
+        
+        if (!periodoIdFinal) {
+          const dataRegistro = new Date(data);
+          const mesAtual = dataRegistro.getMonth();
+          const anoAtual = dataRegistro.getFullYear();
+          
+          // Calcular data de início e fim do mês
+          const dataInicio = new Date(anoAtual, mesAtual, 1);
+          const dataFim = new Date(anoAtual, mesAtual + 1, 0, 23, 59, 59);
+          
+          // Verificar se já existe um período para este mês/usuário
+          const periodoExistente = await prisma.periodoFechamento.findFirst({
+            where: {
+              userId,
+              dataInicio: {
+                gte: dataInicio,
+                lt: new Date(anoAtual, mesAtual, 2), // Primeiro dia + 1 (tolerância)
+              },
+            },
+          });
+          
+          if (periodoExistente) {
+            periodoIdFinal = periodoExistente.id;
+            console.log(`✅ Período existente encontrado: ${periodoExistente.id}`);
+          } else {
+            // Criar novo período de fechamento
+            const novoPeriodo = await prisma.periodoFechamento.create({
+              data: {
+                userId,
+                dataInicio,
+                dataFim,
+                status: 'ABERTO',
+                totalHorasTrabalhadas: 0,
+                totalHorasExtras: 0,
+                totalHorasDevidas: 0,
+                cargaHorariaMensal: 176,
+              },
+            });
+            
+            periodoIdFinal = novoPeriodo.id;
+            console.log(`✅ Novo período criado automaticamente: ${novoPeriodo.id} (${dataInicio.toLocaleDateString()} - ${dataFim.toLocaleDateString()})`);
+          }
+        }
+        // ===== FIM DA CRIAÇÃO AUTOMÁTICA DE PERÍODO =====
+        
         const registro = await prisma.registroPonto.create({
           data: {
             userId,
@@ -106,7 +153,7 @@ const app = new Elysia({ name: 'MeuPonto.API' })
             localizacao: localizacao ? JSON.stringify(localizacao) : null,
             tipo: tipo || 'NORMAL',
             status: status || 'COMPLETO',
-            periodoId: periodoId || null,
+            periodoId: periodoIdFinal, // Usar período criado automaticamente
           },
           include: {
             user: {
@@ -272,6 +319,73 @@ const app = new Elysia({ name: 'MeuPonto.API' })
         });
         
         return periodos;
+      })
+      .post('/', async ({ body }: any) => {
+        const { userId, mes, ano } = body;
+        
+        // Validar entrada
+        if (!userId || !mes || !ano) {
+          throw new Error('userId, mes e ano são obrigatórios');
+        }
+        
+        if (mes < 1 || mes > 12) {
+          throw new Error('Mês inválido (1-12)');
+        }
+        
+        if (ano < 2020 || ano > 2100) {
+          throw new Error('Ano inválido');
+        }
+        
+        // Calcular data de início e fim do mês
+        const dataInicio = new Date(ano, mes - 1, 1);
+        const dataFim = new Date(ano, mes, 0, 23, 59, 59);
+        
+        // Verificar se já existe um período para este mês/usuário
+        const periodoExistente = await prisma.periodoFechamento.findFirst({
+          where: {
+            userId,
+            dataInicio: {
+              gte: dataInicio,
+              lt: new Date(ano, mes - 1, 2), // Primeiro dia + 1 (tolerância)
+            },
+          },
+        });
+        
+        if (periodoExistente) {
+          throw new Error('Já existe um período de fechamento para este mês e usuário');
+        }
+        
+        // Criar novo período
+        const novoPeriodo = await prisma.periodoFechamento.create({
+          data: {
+            userId,
+            dataInicio,
+            dataFim,
+            status: 'ABERTO',
+            totalHorasTrabalhadas: 0,
+            totalHorasExtras: 0,
+            totalHorasDevidas: 0,
+            cargaHorariaMensal: 176,
+          },
+          include: {
+            user: {
+              select: {
+                id: true,
+                nome: true,
+                email: true,
+              },
+            },
+            _count: {
+              select: {
+                registros: true,
+              },
+            },
+          },
+        });
+        
+        console.log(`✅ Período criado manualmente por admin: ${novoPeriodo.id} (${dataInicio.toLocaleDateString()} - ${dataFim.toLocaleDateString()})`);
+        
+        return novoPeriodo;
       })
       .get('/:id', async ({ params }: any) => {
         const { id } = params;

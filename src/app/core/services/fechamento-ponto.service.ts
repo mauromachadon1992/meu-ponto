@@ -181,16 +181,14 @@ export class FechamentoPontoService {
   }
 
   /**
-   * Cria um novo período de fechamento
+   * Cria um novo período de fechamento manualmente (admin)
    */
-  criarPeriodo(periodo: Omit<PeriodoFechamento, 'id'>): Observable<PeriodoFechamento> {
-    const novoPeriodo: PeriodoFechamento = {
-      ...periodo,
-      id: this.gerarId(),
-    };
-
-    this.periodos.set([...this.periodos(), novoPeriodo]);
-    return of(novoPeriodo).pipe(delay(300));
+  criarPeriodo(userId: string, mes: number, ano: number): Observable<PeriodoFechamento> {
+    return this.http.post<PeriodoFechamento>(`${this.apiUrl}/periodos`, {
+      userId,
+      mes,
+      ano,
+    });
   }
 
   /**

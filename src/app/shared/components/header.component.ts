@@ -15,7 +15,22 @@ import {
   HlmMenuShortcut,
 } from '@spartan-ng/helm/menu';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideLogOut, lucideUser, lucideMenu, lucideClock, lucideX, lucideDollarSign, lucideSettings, lucideChevronDown } from '@ng-icons/lucide';
+import { 
+  lucideLogOut, 
+  lucideUser, 
+  lucideMenu, 
+  lucideClock, 
+  lucideX, 
+  lucideDollarSign, 
+  lucideSettings, 
+  lucideChevronDown,
+  lucideFingerprint,
+  lucideCalendarClock,
+  lucideLayoutDashboard,
+  lucideMail,
+  lucideBriefcase,
+  lucideShield
+} from '@ng-icons/lucide';
 import { AuthService } from '../../core/services/auth.service';
 
 @Component({
@@ -49,74 +64,104 @@ import { AuthService } from '../../core/services/auth.service';
       lucideDollarSign,
       lucideSettings,
       lucideChevronDown,
+      lucideFingerprint,
+      lucideCalendarClock,
+      lucideLayoutDashboard,
+      lucideMail,
+      lucideBriefcase,
+      lucideShield,
     }),
   ],
   template: `
     @if (authService.isAuthenticated()) {
       <header class="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div class="flex h-16 items-center justify-between px-4 max-w-screen-2xl mx-auto">
-          <!-- Logo e Nav Desktop -->
-          <div class="flex items-center gap-8">
-            <a routerLink="/fechamento-ponto" class="flex items-center gap-2 transition-transform hover:scale-105">
-              <img src="/logo.svg" alt="Meu Ponto" class="h-9 w-9" />
-              <span class="hidden font-bold text-lg sm:inline-block">Meu Ponto</span>
-            </a>
-            
-            <nav class="hidden md:flex items-center gap-1">
-              <a
-                routerLink="/registro-ponto"
-                routerLinkActive="bg-accent text-accent-foreground"
-                class="inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
-              >
-                Registrar Ponto
-              </a>
-              <a
-                routerLink="/fechamento-ponto"
-                routerLinkActive="bg-accent text-accent-foreground"
-                [routerLinkActiveOptions]="{ exact: false }"
-                class="inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
-              >
-                Fechamentos
-              </a>
-              @if (authService.user()?.isAdmin) {
-                <a
-                  routerLink="/admin/dashboard"
-                  routerLinkActive="bg-accent text-accent-foreground"
-                  class="inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
-                >
-                  Dashboard Admin
-                </a>
-                <a
-                  routerLink="/configuracoes"
-                  routerLinkActive="bg-accent text-accent-foreground"
-                  class="inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
-                >
-                  Configurações
-                </a>
-              }
-            </nav>
-          </div>
+        <div class="flex h-16 items-center justify-between px-4 lg:px-6 max-w-screen-2xl mx-auto">
+          <!-- Logo -->
 
-          <!-- User Info e Actions Desktop -->
+          <a routerLink="/fechamento-ponto" class="flex items-center gap-2.5 transition-transform hover:scale-105 select-none">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <ng-icon hlm name="lucideFingerprint" size="md" />
+            </div>
+            <div class="hidden sm:block">
+              <span class="font-bold text-lg">Meu Ponto</span>
+              <p class="text-xs text-muted-foreground leading-none">Controle de Ponto</p>
+            </div>
+          </a>
+
+          <!-- Desktop Navigation -->
+          <nav class="hidden md:flex items-center gap-1">
+            <a
+              routerLink="/registro-ponto"
+              routerLinkActive="active-link"
+              #regLink="routerLinkActive"
+              class="inline-flex items-center gap-2 justify-center rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+            >
+              <ng-icon hlm name="lucideFingerprint" size="xs" [ngClass]="{'text-accent-foreground': regLink.isActive}" />
+              <span>Registrar</span>
+            </a>
+            <a
+              routerLink="/fechamento-ponto"
+              routerLinkActive="active-link"
+              [routerLinkActiveOptions]="{ exact: false }"
+              #fechLink="routerLinkActive"
+              class="inline-flex items-center gap-2 justify-center rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+            >
+              <ng-icon hlm name="lucideCalendarClock" size="xs" [ngClass]="{'text-accent-foreground': fechLink.isActive}" />
+              <span>Fechamentos</span>
+            </a>
+            @if (authService.user()?.isAdmin) {
+              <div class="h-6 w-px bg-border mx-2"></div>
+              <a
+                routerLink="/admin/dashboard"
+                routerLinkActive="active-link"
+                #dashLink="routerLinkActive"
+                class="inline-flex items-center gap-2 justify-center rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+              >
+                <ng-icon hlm name="lucideLayoutDashboard" size="xs" [ngClass]="{'text-accent-foreground': dashLink.isActive}" />
+                <span>Dashboard</span>
+              </a>
+              <a
+                routerLink="/configuracoes"
+                routerLinkActive="active-link"
+                #confLink="routerLinkActive"
+                class="inline-flex items-center gap-2 justify-center rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+              >
+                <ng-icon hlm name="lucideSettings" size="xs" [ngClass]="{'text-accent-foreground': confLink.isActive}" />
+                <span>Config</span>
+              </a>
+            }
+          </nav>
+
+          <!-- Desktop User Menu -->
           <div class="hidden md:flex items-center gap-3">
             @if (authService.user(); as user) {
               <button
-                class="flex items-center gap-3 rounded-lg border px-3 py-2 bg-muted/50 hover:bg-muted transition-colors"
+                class="flex items-center gap-3 rounded-lg border px-3 py-2 hover:bg-accent transition-colors"
                 [brnMenuTriggerFor]="userMenu"
               >
                 <hlm-avatar size="sm">
                   <img hlmAvatarImage [src]="user.avatar || ''" [alt]="user.nome" />
                   <span hlmAvatarFallback>{{ getInitials(user.nome) }}</span>
                 </hlm-avatar>
-                <div class="text-sm text-left">
-                  <p class="font-medium leading-none">{{ user.nome }}</p>
-                  <p class="text-xs text-muted-foreground mt-0.5">{{ user.cargo }}</p>
+                <div class="text-sm text-left max-w-[150px]">
+                  <p class="font-medium leading-none truncate">{{ user.nome }}</p>
+                  <p class="text-xs text-muted-foreground mt-0.5 truncate">{{ user.cargo }}</p>
                 </div>
-                <ng-icon hlm name="lucideChevronDown" size="sm" class="text-muted-foreground" />
+                <ng-icon hlm name="lucideChevronDown" size="xs" class="text-muted-foreground" />
               </button>
 
               <ng-template #userMenu>
-                <hlm-menu class="w-48" align="end">
+                <hlm-menu class="w-56">
+                  <div class="px-2 py-1.5 text-sm font-semibold">
+                    Minha Conta
+                  </div>
+                  <hlm-menu-separator />
+                  
+                  <button hlmMenuItem>
+                    <ng-icon hlm name="lucideUser" size="sm" class="mr-2" />
+                    <span>Perfil</span>
+                  </button>
+
                   <button hlmMenuItem (click)="changePIN()">
                     <ng-icon hlm name="lucideSettings" size="sm" class="mr-2" />
                     <span>Trocar PIN</span>
@@ -134,103 +179,169 @@ import { AuthService } from '../../core/services/auth.service';
             }
           </div>
 
-          <!-- Mobile Menu Button -->
-          <button
-            hlmBtn
-            variant="ghost"
-            size="icon"
-            class="md:hidden"
-            brnSheetTrigger
-          >
-            <ng-icon hlm name="lucideMenu" size="sm" />
-          </button>
-
-          <!-- Mobile Sheet -->
+          <!-- Mobile Menu -->
           <hlm-sheet side="right">
-            <hlm-sheet-content *brnSheetContent="let ctx">
-              <hlm-sheet-header>
-                <button
-                  hlmBtn
-                  variant="ghost"
-                  size="icon"
-                  class="absolute right-4 top-4"
-                  (click)="ctx.close()"
-                >
-                  <ng-icon hlm name="lucideX" size="sm" />
-                </button>
-                <h3 hlmSheetTitle>Menu</h3>
-                <p hlmSheetDescription>Navegação e configurações</p>
-              </hlm-sheet-header>
-
-              <div class="flex flex-col gap-4 py-4">
-                <!-- User Info Mobile -->
-                @if (authService.user(); as user) {
-                  <div class="flex items-center gap-3 rounded-lg border p-4 bg-muted/50">
-                    <hlm-avatar>
-                      <img hlmAvatarImage [src]="user.avatar || ''" [alt]="user.nome" />
-                      <span hlmAvatarFallback>{{ getInitials(user.nome) }}</span>
-                    </hlm-avatar>
+            <button hlmBtn variant="ghost" size="icon" brnSheetTrigger class="md:hidden select-none">
+              <ng-icon hlm name="lucideMenu" size="sm" />
+            </button>
+            
+            <hlm-sheet-content *brnSheetContent="let ctx" class="w-full sm:max-w-sm p-0">
+              <div class="flex flex-col h-full">
+                <!-- Header -->
+                <div class="flex items-center justify-between p-6 border-b">
+                  <div class="flex items-center gap-2.5">
+                    <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                      <ng-icon hlm name="lucideFingerprint" size="sm" />
+                    </div>
                     <div>
-                      <p class="font-medium">{{ user.nome }}</p>
-                      <p class="text-sm text-muted-foreground">{{ user.cargo }}</p>
-                      <p class="text-xs text-muted-foreground">{{ user.email }}</p>
+                      <p class="font-bold text-base">Meu Ponto</p>
+                      <p class="text-xs text-muted-foreground">Menu de navegação</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- User Profile -->
+                @if (authService.user(); as user) {
+                  <div class="p-6 border-b bg-muted/30">
+                    <div class="flex items-center gap-4">
+                      <hlm-avatar size="lg" class="h-14 w-14">
+                        <img hlmAvatarImage [src]="user.avatar || ''" [alt]="user.nome" />
+                        <span hlmAvatarFallback class="text-base">{{ getInitials(user.nome) }}</span>
+                      </hlm-avatar>
+                      <div class="flex-1 min-w-0">
+                        <p class="font-semibold text-base truncate">{{ user.nome }}</p>
+                        <div class="flex items-center gap-1.5 text-sm text-muted-foreground mt-1">
+                          <ng-icon hlm name="lucideBriefcase" size="xs" />
+                          <span class="truncate">{{ user.cargo }}</span>
+                        </div>
+                        @if (user.isAdmin) {
+                          <div class="flex items-center gap-1.5 mt-2">
+                            <span class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                              <ng-icon hlm name="lucideShield" size="xs" />
+                              Admin
+                            </span>
+                          </div>
+                        }
+                      </div>
                     </div>
                   </div>
                 }
 
-                <!-- Nav Links Mobile -->
-                <div class="flex flex-col gap-1">
-                  <a
-                    routerLink="/registro-ponto"
-                    routerLinkActive="bg-accent text-accent-foreground"
-                    (click)="ctx.close()"
-                    class="inline-flex items-center justify-start rounded-md px-4 py-3 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
-                  >
-                    <ng-icon hlm name="lucideUser" size="sm" class="mr-2" />
-                    Registrar Ponto
-                  </a>
-                  <a
-                    routerLink="/fechamento-ponto"
-                    routerLinkActive="bg-accent text-accent-foreground"
-                    [routerLinkActiveOptions]="{ exact: false }"
-                    (click)="ctx.close()"
-                    class="inline-flex items-center justify-start rounded-md px-4 py-3 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
-                  >
-                    <ng-icon hlm name="lucideClock" size="sm" class="mr-2" />
-                    Fechamentos de Ponto
-                  </a>
-                  @if (authService.user()?.isAdmin) {
-                    <a
-                      routerLink="/admin/dashboard"
-                      routerLinkActive="bg-accent text-accent-foreground"
-                      (click)="ctx.close()"
-                      class="inline-flex items-center justify-start rounded-md px-4 py-3 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
-                    >
-                      <ng-icon hlm name="lucideDollarSign" size="sm" class="mr-2" />
-                      Dashboard Admin
-                    </a>
-                    <a
-                      routerLink="/configuracoes"
-                      routerLinkActive="bg-accent text-accent-foreground"
-                      (click)="ctx.close()"
-                      class="inline-flex items-center justify-start rounded-md px-4 py-3 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
-                    >
-                      <ng-icon hlm name="lucideSettings" size="sm" class="mr-2" />
-                      Configurações
-                    </a>
-                  }
-                </div>
+                <!-- Navigation -->
+                <nav class="flex-1 p-6 overflow-y-auto">
+                  <div class="space-y-6">
+                    <!-- Main Actions -->
+                    <div>
+                      <h3 class="mb-3 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Principal
+                      </h3>
+                      <div class="space-y-1">
+                        <a
+                          routerLink="/registro-ponto"
+                          routerLinkActive="active-mobile"
+                          #regMobile="routerLinkActive"
+                          (click)="ctx.close()"
+                          class="flex items-center gap-3 rounded-lg px-3 py-3.5 text-sm font-medium transition-all hover:bg-accent hover:text-accent-foreground active:scale-[0.98]"
+                          [ngClass]="{'bg-primary text-primary-foreground': regMobile.isActive}"
+                        >
+                          <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-background border"
+                               [ngClass]="{'bg-primary text-primary-foreground': regMobile.isActive}">
+                            <ng-icon hlm name="lucideFingerprint" size="sm" [ngClass]="{'text-primary-foreground': regMobile.isActive}" />
+                          </div>
+                          <div class="flex-1 text-left">
+                            <div class="font-semibold">Registrar Ponto</div>
+                            <div class="text-xs opacity-70">Bater ponto agora</div>
+                          </div>
+                        </a>
+                        <a
+                          routerLink="/fechamento-ponto"
+                          routerLinkActive="active-mobile"
+                          [routerLinkActiveOptions]="{ exact: false }"
+                          #fechMobile="routerLinkActive"
+                          (click)="ctx.close()"
+                          class="flex items-center gap-3 rounded-lg px-3 py-3.5 text-sm font-medium transition-all hover:bg-accent hover:text-accent-foreground active:scale-[0.98]"
+                          [ngClass]="{'bg-primary text-primary-foreground': fechMobile.isActive}"
+                        >
+                          <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-background border"
+                               [ngClass]="{'bg-primary text-primary-foreground': fechMobile.isActive}">
+                            <ng-icon hlm name="lucideCalendarClock" size="sm" [ngClass]="{'text-primary-foreground': fechMobile.isActive}" />
+                          </div>
+                          <div class="flex-1 text-left">
+                            <div class="font-semibold">Fechamentos</div>
+                            <div class="text-xs opacity-70">Histórico mensal</div>
+                          </div>
+                        </a>
+                      </div>
+                    </div>
 
-                <!-- Logout Button Mobile -->
-                <button
-                  hlmBtn
-                  variant="outline"
-                  class="w-full gap-2 mt-auto"
-                  (click)="logout(); ctx.close()"
-                >
-                  <ng-icon hlm name="lucideLogOut" size="sm" />
-                  Sair
-                </button>
+                    <!-- Admin Section -->
+                    @if (authService.user()?.isAdmin) {
+                      <div>
+                        <h3 class="mb-3 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                          Administração
+                        </h3>
+                        <div class="space-y-1">
+                          <a
+                            routerLink="/admin/dashboard"
+                            routerLinkActive="active-mobile"
+                            #dashMobile="routerLinkActive"
+                            (click)="ctx.close()"
+                            class="flex items-center gap-3 rounded-lg px-3 py-3.5 text-sm font-medium transition-all hover:bg-accent hover:text-accent-foreground active:scale-[0.98]"
+                            [ngClass]="{'bg-primary text-primary-foreground': dashMobile.isActive}"
+                          >
+                            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-background border"
+                                 [ngClass]="{'bg-primary text-primary-foreground': dashMobile.isActive}">
+                              <ng-icon hlm name="lucideLayoutDashboard" size="sm" [ngClass]="{'text-primary-foreground': dashMobile.isActive}" />
+                            </div>
+                            <div class="flex-1 text-left">
+                              <div class="font-semibold">Dashboard</div>
+                              <div class="text-xs opacity-70">Visão geral</div>
+                            </div>
+                          </a>
+                          <a
+                            routerLink="/configuracoes"
+                            routerLinkActive="active-mobile"
+                            #confMobile="routerLinkActive"
+                            (click)="ctx.close()"
+                            class="flex items-center gap-3 rounded-lg px-3 py-3.5 text-sm font-medium transition-all hover:bg-accent hover:text-accent-foreground active:scale-[0.98]"
+                            [ngClass]="{'bg-primary text-primary-foreground': confMobile.isActive}"
+                          >
+                            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-background border"
+                                 [ngClass]="{'bg-primary text-primary-foreground': confMobile.isActive}">
+                              <ng-icon hlm name="lucideSettings" size="sm" [ngClass]="{'text-primary-foreground': confMobile.isActive}" />
+                            </div>
+                            <div class="flex-1 text-left">
+                              <div class="font-semibold">Configurações</div>
+                              <div class="text-xs opacity-70">Parâmetros</div>
+                            </div>
+                          </a>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </nav>
+
+                <!-- Footer -->
+                <div class="border-t p-4 space-y-2 bg-muted/20">
+                  <button
+                    hlmBtn
+                    variant="outline"
+                    class="w-full justify-start gap-3 h-11"
+                    (click)="changePIN(); ctx.close()"
+                  >
+                    <ng-icon hlm name="lucideSettings" size="sm" />
+                    <span>Trocar PIN</span>
+                  </button>
+                  <button
+                    hlmBtn
+                    variant="destructive"
+                    class="w-full justify-start gap-3 h-11"
+                    (click)="logout(); ctx.close()"
+                  >
+                    <ng-icon hlm name="lucideLogOut" size="sm" />
+                    <span>Sair</span>
+                  </button>
+                </div>
               </div>
             </hlm-sheet-content>
           </hlm-sheet>
