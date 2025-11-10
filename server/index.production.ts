@@ -310,59 +310,58 @@ const app = new Elysia({ name: 'MeuPonto.API' })
         }
 
         return user;
+      })
+      .patch('/:id', async ({ params, body }: any) => {
+        const { id } = params;
+
+        const updateData: any = {};
+
+        if (body.nome !== undefined) updateData.nome = body.nome;
+        if (body.email !== undefined) {
+          // Verificar se email já existe em outro usuário
+          const emailExistente = await prisma.user.findFirst({
+            where: {
+              email: body.email,
+              NOT: { id },
+            },
+          });
+
+          if (emailExistente) {
+            return {
+              success: false,
+              error: 'E-mail já cadastrado por outro usuário.',
+            };
+          }
+          updateData.email = body.email;
+        }
+        if (body.avatar !== undefined) updateData.avatar = body.avatar;
+        if (body.cargo !== undefined) updateData.cargo = body.cargo;
+        if (body.departamento !== undefined) updateData.departamento = body.departamento;
+        if (body.cargaHorariaDiaria !== undefined)
+          updateData.cargaHorariaDiaria = body.cargaHorariaDiaria;
+        if (body.salarioMensal !== undefined) updateData.salarioMensal = body.salarioMensal;
+        if (body.chavePix !== undefined) updateData.chavePix = body.chavePix || null;
+
+        const usuario = await prisma.user.update({
+          where: { id },
+          data: updateData,
+          select: {
+            id: true,
+            nome: true,
+            email: true,
+            avatar: true,
+            cargo: true,
+            departamento: true,
+            cargaHorariaDiaria: true,
+            salarioMensal: true,
+            chavePix: true,
+            isAdmin: true,
+          },
+        });
+
+        return usuario;
       }),
   )
-
-  .patch('/:id', async ({ params, body }: any) => {
-    const { id } = params;
-
-    const updateData: any = {};
-
-    if (body.nome !== undefined) updateData.nome = body.nome;
-    if (body.email !== undefined) {
-      // Verificar se email já existe em outro usuário
-      const emailExistente = await prisma.user.findFirst({
-        where: {
-          email: body.email,
-          NOT: { id },
-        },
-      });
-
-      if (emailExistente) {
-        return {
-          success: false,
-          error: 'E-mail já cadastrado por outro usuário.',
-        };
-      }
-      updateData.email = body.email;
-    }
-    if (body.avatar !== undefined) updateData.avatar = body.avatar;
-    if (body.cargo !== undefined) updateData.cargo = body.cargo;
-    if (body.departamento !== undefined) updateData.departamento = body.departamento;
-    if (body.cargaHorariaDiaria !== undefined)
-      updateData.cargaHorariaDiaria = body.cargaHorariaDiaria;
-    if (body.salarioMensal !== undefined) updateData.salarioMensal = body.salarioMensal;
-    if (body.chavePix !== undefined) updateData.chavePix = body.chavePix || null;
-
-    const usuario = await prisma.user.update({
-      where: { id },
-      data: updateData,
-      select: {
-        id: true,
-        nome: true,
-        email: true,
-        avatar: true,
-        cargo: true,
-        departamento: true,
-        cargaHorariaDiaria: true,
-        salarioMensal: true,
-        chavePix: true,
-        isAdmin: true,
-      },
-    });
-
-    return usuario;
-  })
 
   // === PERÍODOS DE FECHAMENTO ===
   .group('/api/periodos', (app) =>
